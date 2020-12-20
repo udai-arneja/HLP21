@@ -17,6 +17,7 @@
     <!-- Draw2D diagram -->
     
     <!-- UI -->
+    <Compile Include="Helpers.fs" />
     <Compile Include="CommonTypes.fs" />
     <Compile Include="Symbol.fs" />
     <Compile Include="BusWire.fs" />

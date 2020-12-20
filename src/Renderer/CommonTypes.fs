@@ -102,10 +102,23 @@ module CommonTypes
     type NumberBase = | Hex | Dec | Bin | SDec
 
     /// Colors to highlight components
-    /// Case name is used (lowercase) as HTML color name
+    /// Case name is used as HTML color name.
     /// See JSHelpers.getColorString
     /// lots of colors can be added, see https://www.w3schools.com/colors/colors_names.asp
-    type HighLightColor = Red | Blue | Yellow | Green | Orange 
+    /// The Text() method converts it to the correct HTML string
+    /// Where speed matters the color must be added as a case in the match statement
+    type HighLightColor = Red | Blue | Yellow | Green | Orange | Grey
+    with 
+        member this.Text() = // the match statement is used for performance
+            match this with
+            | Red -> "Red"
+            | Blue -> "Blue"
+            | Yellow -> "Yellow"
+            | Green -> "Green"
+            | Grey -> "Grey"
+            | c -> sprintf "%A" c
+            
+            
 
     // The next types are not strictly necessary, but help in understanding what is what.
     // Used consistently they provide type protection that greatly reduces coding errors
