@@ -70,7 +70,7 @@
     
     // App
     Program.mkProgram Sheet.init update' view'
-    |> Program.withReactSynchronous "app"
+    |> Program.withReactBatched "app"
     |> Program.withSubscription attachMenusAndKeyShortcuts
     |> Program.run
 
