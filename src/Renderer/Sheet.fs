@@ -20,7 +20,7 @@ type Msg =
 
 /// Determines top-level zoom, > 1 => magnify.
 /// This should be moved into the model as state
-let zoom = 1.
+let zoom = 1.0
 
 /// This function zooms an SVG canvas by transforming its content and altering its size.
 /// Currently the zoom expands based on top left corner. Better would be to collect dimensions
