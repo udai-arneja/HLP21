@@ -65,7 +65,7 @@ let createMainWindow () =
     let options = jsOptions<BrowserWindowOptions> <| fun options ->
         options.width <- 1200
         options.height <- 800
-        options.show <- false
+        options.show <- true
         options.autoHideMenuBar <- false
         options.frame <- true
         options.hasShadow <- true
