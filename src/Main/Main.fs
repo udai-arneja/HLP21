@@ -60,19 +60,20 @@ let mutable mainWindow: BrowserWindow option = Option.None
 
 [<Emit("__static")>]
 let staticDir() :string = jsNative
+let isWin = Api.``process``.platform = Base.Win32
 
 let createMainWindow () =
     let options = jsOptions<BrowserWindowOptions> <| fun options ->
         options.width <- 1200
         options.height <- 800
-        options.show <- true
+        options.show <- not isWin
         options.autoHideMenuBar <- false
         options.frame <- true
         options.hasShadow <- true
         options.backgroundColor <-  "#505050"
         // fix for icons not working on linux
         // requires better solution for dist, maybe
-        if Api.``process``.platform = Base.Win32 then
+        if isWin then
             options.icon <- (U2.Case2 (path.join(staticDir(), "icon.ico")))
         //elif Api.``process``.platform = Base.Darwin then
             //options.icon <- (U2.Case2 (path.join(staticDir(), "icon.icns")))   (the icns icon does not work)
