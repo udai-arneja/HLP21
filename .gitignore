@@ -24,6 +24,9 @@ node_modules/
 # Ionide
 .ionide
 
+# Rider
+.idea
+
 # Paket
 /.paket/
 /paket-files/*
