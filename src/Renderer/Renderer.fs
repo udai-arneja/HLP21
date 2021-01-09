@@ -10,6 +10,7 @@
     
     open Helpers
     open Electron
+    
   
     
     
@@ -51,7 +52,9 @@
                    makeKeyItem "Print Statistics" "Alt+Shift+Z" (fun () -> dispatch KeyboardMsg.AltShiftZ)
                    makeRoleItem MenuItemRole.ForceReload
                    makeRoleItem MenuItemRole.Reload
-                   makeRoleItem MenuItemRole.ToggleDevTools |]
+                   makeRoleItem MenuItemRole.ToggleDevTools
+                   makeRoleItem MenuItemRole.ZoomIn
+                   makeRoleItem MenuItemRole.ZoomOut|]
                 |> U2.Case1
     
     let attachMenusAndKeyShortcuts dispatch =
@@ -67,10 +70,19 @@
 
     let update' = fun msg -> recordExecutionTimeStats "Update" (Sheet.update msg)
     let view'  = recordExecutionTimeStats "View" Sheet.view
-    
+    let printMsg (msg:Msg) =
+        match msg with
+        | Wire (BusWire.Msg.MouseMsg busWireMouseMsg) -> sprintf "BusWireMsg:%A" busWireMouseMsg.Op
+        | KeyPress key -> sprintf "%A" key
+        | Wire (BusWire.Msg.Symbol (Symbol.Msg.MouseMsg symMouseMsg)) -> sprintf "SymbolMsg:%A"  symMouseMsg.Op
+        | x -> sprintf "Other:%A" x
+
+    let traceFn (msg:Msg) model = printfn "Msg=%A\n\n" (printMsg msg)
     // App
     Program.mkProgram Sheet.init update' view'
     |> Program.withReactBatched "app"
     |> Program.withSubscription attachMenusAndKeyShortcuts
+    |> Program.withTrace traceFn
+    //|> Program.withConsoleTrace
     |> Program.run
 

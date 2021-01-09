@@ -15,6 +15,18 @@ open Fake.IO.Globbing.Operators
 open Fake.IO.FileSystemOperators
 open Fake.JavaScript
 
+let solutionFileName = 
+    !! "*.sln"
+    |> Seq.toList
+    |> (function
+        | [] -> failwithf """build.fsx expects to find a solution file './*.sln' - no file was found. This can be \
+                             created automatically by Visual Studio or Visual Studio Code"""
+        | [soln] -> 
+            printfn "solution file '%s' found" soln
+            soln
+        | files -> failwithf "Build.fsx expects to find a single '*.sln' file but there are two: '%A'" files)
+        
+
 Target.create "Clean" (fun _ ->
   !! "src/**/bin"
   ++ "src/**/obj"
@@ -35,7 +47,7 @@ Target.create "CleanNode" <| fun _ ->
 Target.create "DotnetRestore" (fun _ ->
   DotNet.restore
     (DotNet.Options.withWorkingDirectory __SOURCE_DIRECTORY__)
-    "hlp21project.sln"
+    solutionFileName
 )
 
 Target.create "NpmInstall" (fun _ ->
@@ -59,7 +71,7 @@ Target.create "DistDir" (fun _ ->
 )
 
 Target.create "KillZombies" <| fun _ ->
-    Fake.Core.Process.killAllByName "hlp21project.exe"
+    Fake.Core.Process.killAllByName <| String.replace ".sln" ".exe" solutionFileName
     Fake.Core.Process.killAllByName "node"
     Fake.Core.Process.killAllByName "dotnet"
 
