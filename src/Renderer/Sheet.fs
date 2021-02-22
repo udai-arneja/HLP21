@@ -9,7 +9,8 @@ open Helpers
 open Electron
 
 type Model = {
-    Wire: BusWire.Model
+    Wire: BusWire.Model;
+    Zoom: float
     }
 
 type KeyboardMsg =
@@ -19,14 +20,12 @@ type Msg =
     | Wire of BusWire.Msg
     | KeyPress of KeyboardMsg
 
-/// Determines top-level zoom, > 1 => magnify.
-/// This should be moved into the model as state
-let zoom = 1.0
+
 
 /// This function zooms an SVG canvas by transforming its content and altering its size.
 /// Currently the zoom expands based on top left corner. Better would be to collect dimensions
 /// current scroll position, and chnage scroll position to keep centre of screen a fixed point.
-let displaySvgWithZoom (zoom:float) (svgReact: ReactElement) (dispatch: Dispatch<Msg>)=
+let displaySvgWithZoom (zoom: float) (svgReact: ReactElement) (dispatch: Dispatch<Msg>)=
     let sizeInPixels = sprintf "%.2fpx" ((1000. * zoom))
     /// Is the mouse button currently down?
     let mDown (ev:Types.MouseEvent) = 
@@ -34,7 +33,7 @@ let displaySvgWithZoom (zoom:float) (svgReact: ReactElement) (dispatch: Dispatch
     /// Dispatch a BusWire MouseMsg message
     /// the screen mouse coordinates are compensated for the zoom transform
     let mouseOp op (ev:Types.MouseEvent) = 
-        dispatch <| Wire (BusWire.MouseMsg {Op = op ; Pos = { X = ev.clientX / zoom ; Y = ev.clientY / zoom}})
+        dispatch <| Wire (BusWire.MouseMsg {Op = op ; Pos = { X = ev.clientX/zoom; Y = ev.clientY/zoom}; Zoom = zoom})
     div [ Style 
             [ 
                 Height "100vh" 
@@ -44,7 +43,6 @@ let displaySvgWithZoom (zoom:float) (svgReact: ReactElement) (dispatch: Dispatch
             ] 
           OnMouseDown (fun ev -> (mouseOp Move ev))
           OnMouseUp (fun ev -> (mouseOp Up ev))
-        //   OnMousePressed( fun ev -> mouseOp (if mDown ev then ))
           OnMouseMove (fun ev -> mouseOp (if mDown ev then Drag else Move) ev)
         ]
         [ svg
@@ -68,7 +66,7 @@ let displaySvgWithZoom (zoom:float) (svgReact: ReactElement) (dispatch: Dispatch
                             FontWeight "Bold"
                             Fill "Green" // font color
                         ]
-                    ] [str "sample text"]
+                        ] [str "sample text"]
 
                     svgReact // the application code
 
@@ -82,12 +80,11 @@ let displaySvgWithZoom (zoom:float) (svgReact: ReactElement) (dispatch: Dispatch
             ]
         ]
 
-
-
 /// for the demo code
 let view (model:Model) (dispatch : Msg -> unit) =
     let wDispatch wMsg = dispatch (Wire wMsg)
     let wireSvg = BusWire.view model.Wire wDispatch
+    let zoom = model.Zoom
     displaySvgWithZoom zoom wireSvg dispatch
        
 
@@ -101,11 +98,10 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         model, Cmd.none // do nothing else and return model unchanged
     | KeyPress AltUp ->
         printfn "Zoom In"
-        model, Cmd.MenuItemRole.ZoomIn
+        {model with Zoom=model.Zoom+0.1}, Cmd.none
     | KeyPress s -> // all other keys are turned into SetColor commands
         let c =
             match s with
-            // | _ -> MenuItemRole.ZoomOut
             | AltV -> CommonTypes.Green
             | AltZ -> CommonTypes.Red
             | _ -> CommonTypes.Grey
@@ -116,4 +112,5 @@ let init() =
     let model,cmds = (BusWire.init 10)()
     {
         Wire = model
+        Zoom = 1.0
     }, Cmd.map Wire cmds
