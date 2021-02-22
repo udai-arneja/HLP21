@@ -6,13 +6,14 @@ open Elmish
 open Elmish.React
 
 open Helpers
+open Electron
 
 type Model = {
     Wire: BusWire.Model
     }
 
 type KeyboardMsg =
-    | CtrlS | AltC | AltV | AltZ | AltShiftZ | DEL
+    | CtrlS | AltC | AltV | AltZ | AltShiftZ | DEL | AltUp
 
 type Msg =
     | Wire of BusWire.Msg
@@ -41,8 +42,9 @@ let displaySvgWithZoom (zoom:float) (svgReact: ReactElement) (dispatch: Dispatch
                 CSSProp.OverflowX OverflowOptions.Auto 
                 CSSProp.OverflowY OverflowOptions.Auto
             ] 
-          OnMouseDown (fun ev -> (mouseOp Down ev))
+          OnMouseDown (fun ev -> (mouseOp Move ev))
           OnMouseUp (fun ev -> (mouseOp Up ev))
+        //   OnMousePressed( fun ev -> mouseOp (if mDown ev then ))
           OnMouseMove (fun ev -> mouseOp (if mDown ev then Drag else Move) ev)
         ]
         [ svg
@@ -97,10 +99,13 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
     | KeyPress AltShiftZ -> 
         printStats() // print and reset the performance statistics in dev tools window
         model, Cmd.none // do nothing else and return model unchanged
+    | KeyPress AltUp ->
+        printfn "Zoom In"
+        model, Cmd.MenuItemRole.ZoomIn
     | KeyPress s -> // all other keys are turned into SetColor commands
         let c =
             match s with
-            | AltC -> CommonTypes.Blue
+            // | _ -> MenuItemRole.ZoomOut
             | AltV -> CommonTypes.Green
             | AltZ -> CommonTypes.Red
             | _ -> CommonTypes.Grey
@@ -108,7 +113,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         model, Cmd.ofMsg (Wire <| BusWire.SetColor c)
 
 let init() = 
-    let model,cmds = (BusWire.init 400)()
+    let model,cmds = (BusWire.init 10)()
     {
         Wire = model
     }, Cmd.map Wire cmds
