@@ -44,8 +44,10 @@
             invisibleMenu.visible <- true // false if you want keys but no "Edit" menu
             invisibleMenu.submenu <-
                 [| makeKeyItem "Default" "CmdOrCtrl+S" (fun () -> dispatch KeyboardMsg.CtrlS)
-                   makeKeyItem "Zoom" "Alt+Up" (fun () -> dispatch KeyboardMsg.AltUp)
+                   makeKeyItem "ZoomI" "Alt+Up" (fun () -> dispatch KeyboardMsg.AltUp)
+                   makeKeyItem "ZoomO" "Alt+Down" (fun () -> dispatch KeyboardMsg.AltDown)
                    makeKeyItem "Green" "Alt+V" (fun () -> dispatch KeyboardMsg.AltV)
+                   makeKeyItem "Selecting" "CmdOrCtrl" (fun () -> dispatch KeyboardMsg.Comd)
                    makeKeyItem "Default"  "delete" (fun () -> dispatch KeyboardMsg.DEL)
                    makeKeyItem "Red" "Alt+Z" (fun () -> dispatch KeyboardMsg.AltZ)
                    menuSeparator
