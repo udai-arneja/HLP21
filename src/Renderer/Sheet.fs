@@ -14,7 +14,7 @@ type Model = {
     }
 
 type KeyboardMsg =
-    | CtrlS | AltC | AltV | AltZ | AltShiftZ | DEL | AltUp
+    | CtrlS | AltC | AltV | AltZ | AltShiftZ | DEL | AltUp | AltDown | Comd
 
 type Msg =
     | Wire of BusWire.Msg
@@ -50,7 +50,8 @@ let displaySvgWithZoom (zoom: float) (svgReact: ReactElement) (dispatch: Dispatc
                 [
                     Border "3px solid green"
                     Height sizeInPixels
-                    Width sizeInPixels           
+                    Width sizeInPixels     
+                    // AlignItems AlignItemsOptions.Center
                 ]
             ]
             [ g // group list of elements with list of attributes
@@ -70,15 +71,16 @@ let displaySvgWithZoom (zoom: float) (svgReact: ReactElement) (dispatch: Dispatc
 
                     svgReact // the application code
 
-                    polygon [ // a demo svg polygon triangle written on top of the application
-                        SVGAttr.Points "10,10 900,900 10,900"
-                        SVGAttr.StrokeWidth "5px"
-                        SVGAttr.Stroke "Black"
-                        SVGAttr.FillOpacity 0.1
-                        SVGAttr.Fill "Blue"] []
+                    // polygon [ // a demo svg polygon triangle written on top of the application
+                    //     SVGAttr.Points "10,10 900,900 10,900"
+                    //     SVGAttr.StrokeWidth "5px"
+                    //     SVGAttr.Stroke "Black"
+                    //     SVGAttr.FillOpacity 0.1
+                    //     SVGAttr.Fill "Blue"] []
                 ]
             ]
         ]
+
 
 /// for the demo code
 let view (model:Model) (dispatch : Msg -> unit) =
@@ -96,9 +98,16 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
     | KeyPress AltShiftZ -> 
         printStats() // print and reset the performance statistics in dev tools window
         model, Cmd.none // do nothing else and return model unchanged
+    // | KeyPress Comd ->
+    //     printfn "Cm"
+    //     {model with Zoom=model.Zoom+0.1}, Cmd.none
     | KeyPress AltUp ->
+        // let wModel, wCmd = 
         printfn "Zoom In"
         {model with Zoom=model.Zoom+0.1}, Cmd.none
+    | KeyPress AltDown ->
+        printfn "Zoom Out"
+        {model with Zoom=model.Zoom-0.1}, Cmd.none
     | KeyPress s -> // all other keys are turned into SetColor commands
         let c =
             match s with
