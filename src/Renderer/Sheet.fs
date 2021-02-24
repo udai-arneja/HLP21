@@ -10,7 +10,8 @@ open Electron
 
 type Model = {
     Wire: BusWire.Model;
-    Zoom: float
+    Zoom: float;
+    Multi: bool;
     }
 
 type KeyboardMsg =
@@ -21,11 +22,10 @@ type Msg =
     | KeyPress of KeyboardMsg
 
 
-
 /// This function zooms an SVG canvas by transforming its content and altering its size.
 /// Currently the zoom expands based on top left corner. Better would be to collect dimensions
 /// current scroll position, and chnage scroll position to keep centre of screen a fixed point.
-let displaySvgWithZoom (zoom: float) (svgReact: ReactElement) (dispatch: Dispatch<Msg>)=
+let displaySvgWithZoom (zoom: float) (multisel:bool) (svgReact: ReactElement) (dispatch: Dispatch<Msg>)=
     let sizeInPixels = sprintf "%.2fpx" ((1000. * zoom))
     /// Is the mouse button currently down?
     let mDown (ev:Types.MouseEvent) = 
@@ -41,7 +41,7 @@ let displaySvgWithZoom (zoom: float) (svgReact: ReactElement) (dispatch: Dispatc
                 CSSProp.OverflowX OverflowOptions.Auto 
                 CSSProp.OverflowY OverflowOptions.Auto
             ] 
-          OnMouseDown (fun ev -> (mouseOp Move ev))
+          OnMouseDown (fun ev -> (mouseOp Down ev))
           OnMouseUp (fun ev -> (mouseOp Up ev))
           OnMouseMove (fun ev -> mouseOp (if mDown ev then Drag else Move) ev)
         ]
@@ -87,7 +87,8 @@ let view (model:Model) (dispatch : Msg -> unit) =
     let wDispatch wMsg = dispatch (Wire wMsg)
     let wireSvg = BusWire.view model.Wire wDispatch
     let zoom = model.Zoom
-    displaySvgWithZoom zoom wireSvg dispatch
+    let multisel = model.Multi
+    displaySvgWithZoom zoom multisel wireSvg dispatch
        
 
 let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
@@ -98,9 +99,9 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
     | KeyPress AltShiftZ -> 
         printStats() // print and reset the performance statistics in dev tools window
         model, Cmd.none // do nothing else and return model unchanged
-    // | KeyPress Comd ->
-    //     printfn "Cm"
-    //     {model with Zoom=model.Zoom+0.1}, Cmd.none
+    | KeyPress Comd ->
+        printfn "Cmd"
+        {model with Multi=true}, Cmd.none
     | KeyPress AltUp ->
         // let wModel, wCmd = 
         printfn "Zoom In"
@@ -122,4 +123,5 @@ let init() =
     {
         Wire = model
         Zoom = 1.0
+        Multi = false
     }, Cmd.map Wire cmds
