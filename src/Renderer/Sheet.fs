@@ -12,6 +12,7 @@ type Model = {
     Wire: BusWire.Model;
     Zoom: float;
     Multi: bool;
+    Boxes: (XYPos*XYPos) list
     }
 
 type KeyboardMsg =
@@ -70,13 +71,6 @@ let displaySvgWithZoom (zoom: float) (multisel:bool) (svgReact: ReactElement) (d
                         ] [str "sample text"]
 
                     svgReact // the application code
-
-                    // polygon [ // a demo svg polygon triangle written on top of the application
-                    //     SVGAttr.Points "10,10 900,900 10,900"
-                    //     SVGAttr.StrokeWidth "5px"
-                    //     SVGAttr.Stroke "Black"
-                    //     SVGAttr.FillOpacity 0.1
-                    //     SVGAttr.Fill "Blue"] []
                 ]
             ]
         ]
@@ -124,4 +118,5 @@ let init() =
         Wire = model
         Zoom = 1.0
         Multi = false
+        Boxes=[]
     }, Cmd.map Wire cmds
