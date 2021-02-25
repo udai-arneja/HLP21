@@ -1,4 +1,6 @@
 ﻿module Sheet
+
+open Fulma
 open Fable.React
 open Fable.React.Props
 open Browser
@@ -6,7 +8,7 @@ open Elmish
 open Elmish.React
 
 open Helpers
-open Electron
+
 
 type Model = {
     Wire: BusWire.Model;
@@ -22,6 +24,10 @@ type Msg =
     | Wire of BusWire.Msg
     | KeyPress of KeyboardMsg
 
+// type TopMenu = | Closed | Project | Files
+
+///helper functions to be moved out later
+ 
 
 /// This function zooms an SVG canvas by transforming its content and altering its size.
 /// Currently the zoom expands based on top left corner. Better would be to collect dimensions
@@ -103,6 +109,8 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
     | KeyPress AltDown ->
         printfn "Zoom Out"
         {model with Zoom=model.Zoom-0.1}, Cmd.none
+    | KeyPress DEL ->
+        model, Cmd.none
     | KeyPress s -> // all other keys are turned into SetColor commands
         let c =
             match s with
@@ -120,3 +128,5 @@ let init() =
         Multi = false
         Boxes=[]
     }, Cmd.map Wire cmds
+
+
