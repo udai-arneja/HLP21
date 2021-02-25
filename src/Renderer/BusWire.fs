@@ -42,10 +42,10 @@ type Model = {
 /// for highlighting, width inference, etc
 type Msg =
     | Symbol of Symbol.Msg
-    | AddWire of (CommonTypes.ConnectionId * CommonTypes.ConnectionId)
+    | AddWire of (CommonTypes.InputPortId * CommonTypes.OutputPortId)
     | SetColor of CommonTypes.HighLightColor
     | MouseMsg of MouseT
-    | DeleteWire of (CommonTypes.ConnectionId * CommonTypes.ConnectionId)
+    | DeleteWire of (CommonTypes.InputPortId * CommonTypes.OutputPortId)
 
 
 /// look up wire in WireModel
