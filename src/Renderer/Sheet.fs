@@ -15,6 +15,7 @@ type Model = {
     Zoom: float;
     Multi: bool;
     Boxes: (XYPos*XYPos) list
+    Selected: (CommonTypes.ComponentId) list
     }
 
 type KeyboardMsg =
@@ -27,7 +28,7 @@ type Msg =
 // type TopMenu = | Closed | Project | Files
 
 ///helper functions to be moved out later
- 
+
 
 /// This function zooms an SVG canvas by transforming its content and altering its size.
 /// Currently the zoom expands based on top left corner. Better would be to collect dimensions
@@ -51,6 +52,8 @@ let displaySvgWithZoom (zoom: float) (multisel:bool) (svgReact: ReactElement) (d
           OnMouseDown (fun ev -> (mouseOp Down ev))
           OnMouseUp (fun ev -> (mouseOp Up ev))
           OnMouseMove (fun ev -> mouseOp (if mDown ev then Drag else Move) ev)
+        //   OnKeyPress (fun ev -> match )
+
         ]
         [ svg
             [ Style 
@@ -127,6 +130,7 @@ let init() =
         Zoom = 1.0
         Multi = false
         Boxes=[]
+        Selected=[]
     }, Cmd.map Wire cmds
 
 
