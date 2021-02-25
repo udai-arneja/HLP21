@@ -45,8 +45,7 @@ type Msg =
     | AddWire of (CommonTypes.ConnectionId * CommonTypes.ConnectionId)
     | SetColor of CommonTypes.HighLightColor
     | MouseMsg of MouseT
-
-
+    | DeleteWire of (CommonTypes.ConnectionId * CommonTypes.ConnectionId)
 
 
 /// look up wire in WireModel
