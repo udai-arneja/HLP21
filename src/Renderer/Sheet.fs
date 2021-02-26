@@ -108,6 +108,9 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
     | KeyPress CmdD ->
         printfn "CmdD"
         {model with Multi=true}, Cmd.none
+    // | KeyPress AltN ->
+    //     printfn "New Component"
+    //     {model with Boxes=nComp::model.Boxes}, Cmd.none
     | KeyPress AltUp ->
         // let wModel, wCmd = 
         printfn "Zoom In"
