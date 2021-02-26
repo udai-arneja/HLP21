@@ -96,16 +96,16 @@ let view (model:Model) (dispatch: Dispatch<Msg>)=
 /// this initialisation depends on details of Symbol.Model type.
 let init n () =
     let symbols, cmd = Symbol.init()
-    let symIds = List.map (fun (sym:Symbol.Symbol) -> sym.Id) symbols
+    let symIds = List.map (fun (sym:Symbol.Symbol) -> sym.Id) symbols.SymbolsList
     let rng = System.Random 0
     let makeRandomWire() =
         let n = symIds.Length
         let s1,s2 =
             match rng.Next(0,n-1), rng.Next(0,n-2) with
             | r1,r2 when r1 = r2 -> 
-                symbols.[r1],symbols.[n-1] // prevents wire target and source being same
+                symbols.SymbolsList.[r1],symbols.SymbolsList.[n-1] // prevents wire target and source being same
             | r1,r2 -> 
-                symbols.[r1],symbols.[r2]
+                symbols.SymbolsList.[r1],symbols.SymbolsList.[r2]
         {
             Id=CommonTypes.ConnectionId (uuid())
             SrcSymbol = s1.Id
