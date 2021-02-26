@@ -27,7 +27,10 @@ type Symbol =
     }
 
 
-type Model = Symbol list
+type Model = {
+    MouseInfo: MouseT;
+    SymbolsList: Symbol list
+}
 
 //----------------------------Message Type-----------------------------------//
 
@@ -82,57 +85,64 @@ let createNewSymbol (pos:XYPos) =
 
 /// Dummy function for test. The real init would probably have no symbols.
 let init () =
+    {MouseInfo={Pos={X=0.;Y=0.};Op=Up;Zoom=1.}; 
+    SymbolsList=
     List.allPairs [1..14] [1..14]
     |> List.map (fun (x,y) -> {X = float (x*64+30); Y=float (y*64+30)})
     |> List.map createNewSymbol
-    , Cmd.none
+    }, Cmd.none
 
 /// update function which displays symbols
 let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
     match msg with
     | AddCircle pos -> 
-        createNewSymbol pos :: model, Cmd.none
+        {model with SymbolsList=createNewSymbol pos :: model.SymbolsList}, Cmd.none
     | DeleteSymbol sId -> 
-        List.filter (fun sym -> sym.Id <> sId) model, Cmd.none
+        {model with SymbolsList=List.filter (fun sym -> sym.Id <> sId) model.SymbolsList}, Cmd.none
     | StartDragging (sId, pagePos) ->
-        model
-        |> List.map (fun sym ->
-            if sId <> sym.Id then
-                sym
-            else
-                { sym with
-                    LastDragPos = pagePos
-                    IsDragging = true
-                }
-        )
+        {model with SymbolsList=
+                            model.SymbolsList
+                            |> List.map (fun sym ->
+                                if sId <> sym.Id then
+                                    sym
+                                else
+                                    { sym with
+                                        LastDragPos = pagePos
+                                        IsDragging = true
+                                    }
+                            )
+        }
         , Cmd.none
 
     | Dragging (rank, pagePos) ->
-        model
-        |> List.map (fun sym ->
-            if rank <> sym.Id then
-                sym
-            else
-                let diff = posDiff pagePos sym.LastDragPos
-                { sym with
-                    Pos = posAdd sym.Pos diff
-                    LastDragPos = pagePos
-                }
-        )
+        {model with SymbolsList=
+                            model.SymbolsList
+                            |> List.map (fun sym ->
+                                if rank <> sym.Id then
+                                    sym
+                                else
+                                    let diff = posDiff pagePos sym.LastDragPos
+                                    { sym with
+                                        Pos = posAdd sym.Pos diff
+                                        LastDragPos = pagePos
+                                    }
+                            )
+        }
         , Cmd.none
 
     | EndDragging sId ->
-        model
-        |> List.map (fun sym ->
-            if sId <> sym.Id then 
-                sym
-            else
-                { sym with
-                    IsDragging = false 
-                }
-        )
+        {model with SymbolsList=
+                            model.SymbolsList
+                            |> List.map (fun sym ->
+                                if sId <> sym.Id then 
+                                    sym
+                                else
+                                    {sym with 
+                                        IsDragging = false}
+                            )
+        }
         , Cmd.none
-    | MouseMsg _ -> model, Cmd.none // allow unused mouse messags
+    | MouseMsg x -> {model with MouseInfo=x}, Cmd.none // allow unused mouse messags
     | _ -> failwithf "Not implemented"
 
 //----------------------------View Function for Symbols----------------------------//
@@ -192,7 +202,7 @@ let private renderCircle =
 
 /// View function for symbol layer of SVG
 let view (model : Model) (dispatch : Msg -> unit) = 
-    model
+    model.SymbolsList
     |> List.map (fun ({Id = CommonTypes.ComponentId id} as circle) ->
         renderCircle 
             {
@@ -207,7 +217,7 @@ let view (model : Model) (dispatch : Msg -> unit) =
 //---------------Other interface functions--------------------//
 
 let symbolPos (symModel: Model) (sId: CommonTypes.ComponentId) : XYPos = 
-    List.find (fun sym -> sym.Id = sId) symModel
+    List.find (fun sym -> sym.Id = sId) symModel.SymbolsList
     |> (fun sym -> sym.Pos)
 
 
