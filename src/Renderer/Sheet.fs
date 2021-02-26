@@ -19,7 +19,7 @@ type Model = {
     }
 
 type KeyboardMsg =
-    | CtrlS | AltC | AltV | AltZ | AltShiftZ | DEL | AltUp | AltDown | Comd
+    | CtrlS | AltC | AltV | AltZ | AltShiftZ | DEL | AltUp | AltDown | CmdD
 
 type Msg =
     | Wire of BusWire.Msg
@@ -51,9 +51,12 @@ let displaySvgWithZoom (zoom: float) (multisel:bool) (svgReact: ReactElement) (d
             ] 
           OnMouseDown (fun ev -> (mouseOp Down ev))
           OnMouseUp (fun ev -> (mouseOp Up ev))
-          OnMouseMove (fun ev -> mouseOp (if mDown ev then Drag else Move) ev)
+        //   OnMouseMove (fun ev -> mouseOp (if multisel 
+        //                                   then if mDown ev 
+        //                                        then Drag
+        //                                        else Up
+        //                                   else Up)ev)
         //   OnKeyPress (fun ev -> match )
-
         ]
         [ svg
             [ Style 
@@ -77,7 +80,7 @@ let displaySvgWithZoom (zoom: float) (multisel:bool) (svgReact: ReactElement) (d
                             FontWeight "Bold"
                             Fill "Green" // font color
                         ]
-                        ] [str "sample text"]
+                        ] [str "A lot of experimentation"]
 
                     svgReact // the application code
                 ]
@@ -102,8 +105,8 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
     | KeyPress AltShiftZ -> 
         printStats() // print and reset the performance statistics in dev tools window
         model, Cmd.none // do nothing else and return model unchanged
-    | KeyPress Comd ->
-        printfn "Cmd"
+    | KeyPress CmdD ->
+        printfn "CmdD"
         {model with Multi=true}, Cmd.none
     | KeyPress AltUp ->
         // let wModel, wCmd = 

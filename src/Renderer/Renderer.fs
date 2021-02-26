@@ -47,7 +47,7 @@
                    makeKeyItem "ZoomI" "Alt+Up" (fun () -> dispatch KeyboardMsg.AltUp)
                    makeKeyItem "ZoomO" "Alt+Down" (fun () -> dispatch KeyboardMsg.AltDown)
                    makeKeyItem "Green" "Alt+V" (fun () -> dispatch KeyboardMsg.AltV)
-                   makeKeyItem "Selecting" "CmdOrCtrl" (fun () -> dispatch KeyboardMsg.Comd)
+                   makeKeyItem "Selecting" "CmdOrCtrl+D" (fun () -> dispatch KeyboardMsg.CmdD)
                    makeKeyItem "Default"  "delete" (fun () -> dispatch KeyboardMsg.DEL)
                    makeKeyItem "Red" "Alt+Z" (fun () -> dispatch KeyboardMsg.AltZ)
                    menuSeparator
