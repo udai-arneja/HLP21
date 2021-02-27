@@ -15,6 +15,7 @@ type Model = {
     Zoom: float;
     Multi: bool;
     Boxes: (XYPos*XYPos) list
+    // Boxes: Map<(XYPos*XYPos), CommonTypes.ComponentId>
     Selected: (CommonTypes.ComponentId) list
     }
 
@@ -118,7 +119,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
     | KeyPress AltN ->
         printfn "New Component"
         //need to add the bounding box calculations to add to sheet model
-        model, Cmd.ofMsg (Wire <| BusWire.Symbol (Symbol.AddCircle {X=200.;Y=200.}))
+        model, Cmd.ofMsg (Wire <| BusWire.Symbol (Symbol.AddCircle ({X=200.;Y=200.},CommonTypes.ComponentId (Helpers.uuid())) ))
     // Zoom In
     | KeyPress AltUp ->
         // let wModel, wCmd = 
@@ -129,8 +130,9 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         printfn "Zoom Out"
         {model with Zoom=model.Zoom-0.1}, Cmd.none
     // Deleting Symbol
-    | KeyPress DEL ->
-        model, Cmd.none
+    // | KeyPress DEL ->
+    //     printfn "Delete Comp"
+    //     model, Cmd.ofMsg (Wire <| BusWire.Symbol (Symbol.DeleteSymbol ))
     // Wire Colour changes
     | KeyPress s -> // all other keys are turned into SetColor commands
         let c =
@@ -142,7 +144,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         model, Cmd.ofMsg (Wire <| BusWire.SetColor c)
 
 let init() = 
-    let model,cmds = (BusWire.init 10)()
+    let model,cmds = (BusWire.init 0)()
     {
         Wire = model
         Zoom = 1.0
@@ -150,5 +152,6 @@ let init() =
         Boxes=[]
         Selected=[]
     }, Cmd.map Wire cmds
+//need to remove all the initial boxes and do bounding boxes as components are added
 
 
