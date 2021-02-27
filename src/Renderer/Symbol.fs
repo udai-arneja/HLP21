@@ -46,7 +46,7 @@ type Msg =
     /// coords not adjusted for top-level zoom
     | Dragging of sId : CommonTypes.ComponentId * pagePos: XYPos
     | EndDragging of sId : CommonTypes.ComponentId
-    | AddCircle of XYPos // used by demo code to add a circle
+    | AddCircle of XYPos * CommonTypes.ComponentId// used by demo code to add a circle
     | DeleteSymbol of sId:CommonTypes.ComponentId 
     | UpdateSymbolModelWithComponent of CommonTypes.Component // Issie interface
 
@@ -74,29 +74,30 @@ let posOf x y = {X=x;Y=y}
 /// Symbol creation: a unique Id is given to the symbol, found from uuid.
 /// The parameters of this function must be enough to specify the symbol completely
 /// in its initial form. This is called by the AddSymbol message and need not be exposed.
-let createNewSymbol (pos:XYPos) =
+let createNewSymbol (pos:XYPos)(id:CommonTypes.ComponentId ) =
     {
         Pos = pos
         LastDragPos = {X=0. ; Y=0.} // initial value can always be this
         IsDragging = false // initial value can always be this
-        Id = CommonTypes.ComponentId (Helpers.uuid()) // create a unique id for this symbol
+        Id = id // create a unique id for this symbol
+        // SymbolType = CommonTypes.ComponentType
     }
 
 
 /// Dummy function for test. The real init would probably have no symbols.
 let init () =
     {MouseInfo={Pos={X=0.;Y=0.};Op=Up;Zoom=1.}; 
-    SymbolsList=
-    List.allPairs [1..2] [1..2]
-    |> List.map (fun (x,y) -> {X = float (x*64+30); Y=float (y*64+30)})
-    |> List.map createNewSymbol
+    SymbolsList=[]
+    // List.allPairs [1] [1]
+    // |> List.map (fun (x,y) -> {X = float (x*64+30); Y=float (y*64+30)})
+    // |> List.map createNewSymbol
     }, Cmd.none
 
 /// update function which displays symbols
 let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
     match msg with
-    | AddCircle pos -> 
-        {model with SymbolsList=createNewSymbol pos :: model.SymbolsList}, Cmd.none
+    | AddCircle (pos, id) -> 
+        {model with SymbolsList=(createNewSymbol pos id) :: model.SymbolsList}, Cmd.none
     | DeleteSymbol sId -> 
         {model with SymbolsList=List.filter (fun sym -> sym.Id <> sId) model.SymbolsList}, Cmd.none
     | StartDragging (sId, pagePos) ->
