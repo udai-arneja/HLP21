@@ -27,6 +27,7 @@ module CommonTypes
         PortNumber : int option
         PortType : PortType
         HostId : string
+        PortPos : Helpers.XYPos
     }
 
     /// Name identified the LoadedComponent used.
