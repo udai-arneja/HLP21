@@ -105,27 +105,34 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
     | Wire wMsg -> 
         let wModel, wCmd = BusWire.update wMsg model.Wire
         {model with Wire = wModel}, Cmd.map Wire wCmd
+    //printing statistics
     | KeyPress AltShiftZ -> 
         printStats() // print and reset the performance statistics in dev tools window
         model, Cmd.none // do nothing else and return model unchanged
+    //setting up for multi select - yet to implement properly
     | KeyPress CmdD ->
         printfn "CmdD"
         {model with Multi=true}, Cmd.none
-    //creating a new symbol - just a circle for now
+    // creating a new symbol - just a circle for now
+    // need to make coordinates come from mouse
     | KeyPress AltN ->
         printfn "New Component"
         let wModel,wCmd = BusWire.update (BusWire.Symbol (Symbol.AddCircle {X=20.;Y=40.})) model.Wire
         //need to add the bounding box calculations to add to sheet model
         {model with Wire = wModel}, Cmd.map Wire wCmd
+    // Zoom In
     | KeyPress AltUp ->
         // let wModel, wCmd = 
         printfn "Zoom In"
         {model with Zoom=model.Zoom+0.1}, Cmd.none
+    // Zoom Out
     | KeyPress AltDown ->
         printfn "Zoom Out"
         {model with Zoom=model.Zoom-0.1}, Cmd.none
+    // Deleting Symbol
     | KeyPress DEL ->
         model, Cmd.none
+    // Wire Colour changes
     | KeyPress s -> // all other keys are turned into SetColor commands
         let c =
             match s with
