@@ -50,6 +50,7 @@
                    makeKeyItem "Selecting" "CmdOrCtrl+D" (fun () -> dispatch KeyboardMsg.CmdD)
                    makeKeyItem "Default"  "delete" (fun () -> dispatch KeyboardMsg.DEL)
                    makeKeyItem "Red" "Alt+Z" (fun () -> dispatch KeyboardMsg.AltZ)
+                   makeKeyItem "New Comp" "Alt+N" (fun () -> dispatch KeyboardMsg.AltN)
                    menuSeparator
                    makeKeyItem "Print Statistics" "Alt+Shift+Z" (fun () -> dispatch KeyboardMsg.AltShiftZ)
                    makeRoleItem MenuItemRole.ForceReload
