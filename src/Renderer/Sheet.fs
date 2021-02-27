@@ -19,7 +19,7 @@ type Model = {
     }
 
 type KeyboardMsg =
-    | CtrlS | AltC | AltV | AltZ | AltShiftZ | DEL | AltUp | AltDown | CmdD
+    | CtrlS | AltC | AltV | AltZ | AltShiftZ | DEL | AltUp | AltDown | CmdD | AltN
 
 type Msg =
     | Wire of BusWire.Msg
@@ -99,6 +99,9 @@ let view (model:Model) (dispatch : Msg -> unit) =
 
 let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
     match msg with
+    // sending messages to buswire - only comm. path
+    // all other update functions that need to comm. with other paths
+    // will send an update function to this DU
     | Wire wMsg -> 
         let wModel, wCmd = BusWire.update wMsg model.Wire
         {model with Wire = wModel}, Cmd.map Wire wCmd
@@ -108,9 +111,12 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
     | KeyPress CmdD ->
         printfn "CmdD"
         {model with Multi=true}, Cmd.none
-    // | KeyPress AltN ->
-    //     printfn "New Component"
-    //     {model with Boxes=nComp::model.Boxes}, Cmd.none
+    //creating a new symbol - just a circle for now
+    | KeyPress AltN ->
+        printfn "New Component"
+        let wModel,wCmd = BusWire.update (BusWire.Symbol (Symbol.AddCircle {X=20.;Y=40.})) model.Wire
+        //need to add the bounding box calculations to add to sheet model
+        {model with Wire = wModel}, Cmd.map Wire wCmd
     | KeyPress AltUp ->
         // let wModel, wCmd = 
         printfn "Zoom In"
