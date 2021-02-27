@@ -25,6 +25,7 @@ type Wire = {
     Id: CommonTypes.ConnectionId 
     SrcSymbol: CommonTypes.ComponentId
     TargetSymbol: CommonTypes.ComponentId
+    // WireVertices : XYPos list
     }
 
 type Model = {
