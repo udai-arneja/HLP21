@@ -117,9 +117,8 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
     // need to make coordinates come from mouse
     | KeyPress AltN ->
         printfn "New Component"
-        let wModel,wCmd = BusWire.update (BusWire.Symbol (Symbol.AddCircle {X=20.;Y=40.})) model.Wire
         //need to add the bounding box calculations to add to sheet model
-        {model with Wire = wModel}, Cmd.map Wire wCmd
+        model, Cmd.ofMsg (Wire <| BusWire.Symbol (Symbol.AddCircle {X=200.;Y=200.}))
     // Zoom In
     | KeyPress AltUp ->
         // let wModel, wCmd = 
