@@ -14,8 +14,8 @@ type Model = {
     Wire: BusWire.Model;
     Zoom: float;
     Multi: bool;
-    Boxes: (XYPos*XYPos) list
-    // Boxes: Map<(XYPos*XYPos), CommonTypes.ComponentId>
+    // Boxes: (XYPos*XYPos) list
+    Boxes: Map<(XYPos*XYPos), CommonTypes.ComponentId>
     Selected: (CommonTypes.ComponentId) list
     }
 
@@ -51,12 +51,7 @@ let displaySvgWithZoom (zoom: float) (multisel:bool) (svgReact: ReactElement) (d
             ] 
           OnMouseDown (fun ev -> (mouseOp Down ev))
           OnMouseUp (fun ev -> (mouseOp Up ev))
-        //   OnMouseMove (fun ev -> mouseOp (if multisel 
-        //                                   then if mDown ev 
-        //                                        then Drag
-        //                                        else Up
-        //                                   else Up)ev)
-        //   OnKeyPress (fun ev -> match )
+          OnMouseMove (fun ev -> mouseOp (if mDown ev then Drag else Move)ev)
         ]
         [ svg
             [ Style 
@@ -99,6 +94,18 @@ let view (model:Model) (dispatch : Msg -> unit) =
 
 let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
     match msg with
+    | Wire (BusWire.MouseMsg {Op = mouseState ; Pos = { X = mX; Y = mY}; Zoom = zoom}) ->
+        let overComp = match Map.tryFindKey (fun (co1,co2) symbolid -> co1.X<mX && co2.Y<mY) model.Boxes with
+                       | Some x -> Some model.Boxes.[x]
+                       | None -> None
+        match mouseState with
+        | Down -> match overComp with
+                  | Some x -> printf "%A" x
+                              {model with Selected=x::model.Selected}, Cmd.none
+                  | None -> {model with Selected=[]} , Cmd.none
+        | Up -> model, Cmd.none
+        | Drag -> model, Cmd.none
+        | Move -> model, Cmd.none
     // sending messages to buswire - only comm. path
     // all other update functions that need to comm. with other paths
     // will send an update function to this DU
@@ -110,9 +117,9 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         printStats() // print and reset the performance statistics in dev tools window
         model, Cmd.none // do nothing else and return model unchanged
     //setting up for multi select - yet to implement properly
-    | KeyPress CmdD ->
-        printfn "CmdD"
-        {model with Multi=true}, Cmd.none
+    // | KeyPress CmdD ->
+    //     printfn "CmdD"
+    //     {model with Multi=true}, Cmd.none
     // creating a new symbol - just a circle for now
     // need to make coordinates come from mouse
     | KeyPress AltN ->
@@ -120,11 +127,13 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         let symbolPos = {X=200.;Y=200.}
             //can be mouse co-ordinates or however the position of a new component
             //will be implemented
-        let newCompInfo = (symbolPos,CommonTypes.ComponentId (Helpers.uuid()))
+        let compid = CommonTypes.ComponentId (Helpers.uuid())
+        let newCompInfo = (symbolPos,compid)
             //all the info needed for a new comp - updated when interfacing with Symbol
         let boundingBox = (symbolPos,{X=symbolPos.X+20.;Y=symbolPos.Y+20.})
             //creating a bounding box - either calc. or use component type dimensions?
-        {model with Boxes=boundingBox::model.Boxes}, Cmd.ofMsg (Wire <| BusWire.Symbol (Symbol.AddCircle newCompInfo))
+        printf "%A" compid
+        {model with Boxes=(Map.add boundingBox compid model.Boxes)}, Cmd.ofMsg (Wire <| BusWire.Symbol (Symbol.AddCircle newCompInfo))
     
     | KeyPress AltUp ->
         // let wModel, wCmd = 
@@ -154,7 +163,7 @@ let init() =
         Wire = model
         Zoom = 1.0
         Multi = false
-        Boxes=[]
+        Boxes=Map.empty
         Selected=[]
     }, Cmd.map Wire cmds
 //need to remove all the initial boxes and do bounding boxes as components are added
