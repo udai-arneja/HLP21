@@ -8,6 +8,7 @@ open Elmish
 open Elmish.React
 
 open Helpers
+open Symbol
 
 
 type Model = {
@@ -104,7 +105,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         //click - 
         | Down -> match overComp with
                   | Some x -> printfn "Selected: %A" x
-                              {model with Selected=x::model.Selected}, Cmd.ofMsg (Wire <| BusWire.SetColor CommonTypes.Green)
+                              {model with Selected=x::model.Selected}, Cmd.none
                               //need to send list of selected items - for highlighting
                   | None -> {model with Selected=[]} , Cmd.none
         | Up -> model, Cmd.none
@@ -132,8 +133,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
     | KeyPress AltN ->
         printfn "New Component"
         let symbolPos = {X=200.;Y=200.}
-            //can be mouse co-ordinates or however the position of a new component
-            //will be implemented
+            //can be mouse co-ordinates or however the position of a new component will be implemented
         let compid = CommonTypes.ComponentId (Helpers.uuid())
         let newCompInfo = (symbolPos,compid)
             //all the info needed for a new comp - updated when interfacing with Symbol
@@ -143,18 +143,17 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         {model with Boxes=(Map.add boundingBox compid model.Boxes)}, Cmd.ofMsg (Wire <| BusWire.Symbol (Symbol.AddCircle newCompInfo))
     
     | KeyPress AltUp ->
-        // let wModel, wCmd = 
         printfn "Zoom In"
         {model with Zoom=model.Zoom+0.1}, Cmd.none
 
     | KeyPress AltDown ->
         printfn "Zoom Out"
         {model with Zoom=model.Zoom-0.1}, Cmd.none
-    // Deleting Symbol
-    // | KeyPress DEL ->
-    //     printfn "Delete Comp(s)"
-    //     let delCompList = model.Selected
-    //     {model with Selected=[]}, Cmd.map (Wire <| BusWire.Symbol (Symbol.DeleteSymbol delCompList))
+
+    | KeyPress DEL ->
+        let delCompList = model.Selected
+        {model with Selected=[]},Cmd.ofMsg (Wire <| BusWire.Symbol (DeleteSymbol delCompList))
+
     // Wire Colour changes
     | KeyPress s -> // all other keys are turned into SetColor commands
         let c =
