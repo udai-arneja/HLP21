@@ -95,17 +95,24 @@ let view (model:Model) (dispatch : Msg -> unit) =
 let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
     match msg with
     | Wire (BusWire.MouseMsg {Op = mouseState ; Pos = { X = mX; Y = mY}; Zoom = zoom}) ->
-        let overComp = match Map.tryFindKey (fun (co1,co2) symbolid -> co1.X<mX && co2.Y<mY) model.Boxes with
+        //is this mouse over a component - if so return the component Id
+        let overComp = match Map.tryFindKey (fun (co1,co2) symbolid -> co1.X<mX && co2.X>mX && co1.Y<mY && co2.Y>mY) model.Boxes with
                        | Some x -> Some model.Boxes.[x]
                        | None -> None
+        //mouseState to determine functionality
         match mouseState with
+        //click - 
         | Down -> match overComp with
-                  | Some x -> printf "%A" x
-                              {model with Selected=x::model.Selected}, Cmd.none
+                  | Some x -> printfn "Selected: %A" x
+                              {model with Selected=x::model.Selected}, Cmd.ofMsg (Wire <| BusWire.SetColor CommonTypes.Green)
+                              //need to send list of selected items - for highlighting
                   | None -> {model with Selected=[]} , Cmd.none
         | Up -> model, Cmd.none
         | Drag -> model, Cmd.none
-        | Move -> model, Cmd.none
+        | Move -> match overComp with
+                  | Some x -> printfn "%A" x
+                              model, Cmd.none
+                  | None -> {model with Selected=[]} , Cmd.none
     // sending messages to buswire - only comm. path
     // all other update functions that need to comm. with other paths
     // will send an update function to this DU
@@ -130,9 +137,9 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         let compid = CommonTypes.ComponentId (Helpers.uuid())
         let newCompInfo = (symbolPos,compid)
             //all the info needed for a new comp - updated when interfacing with Symbol
-        let boundingBox = (symbolPos,{X=symbolPos.X+20.;Y=symbolPos.Y+20.})
+        let boundingBox = ({X=symbolPos.X-20.;Y=symbolPos.Y-20.},{X=symbolPos.X+20.;Y=symbolPos.Y+20.})
             //creating a bounding box - either calc. or use component type dimensions?
-        printf "%A" compid
+        printfn "%A" compid
         {model with Boxes=(Map.add boundingBox compid model.Boxes)}, Cmd.ofMsg (Wire <| BusWire.Symbol (Symbol.AddCircle newCompInfo))
     
     | KeyPress AltUp ->
@@ -145,8 +152,9 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         {model with Zoom=model.Zoom-0.1}, Cmd.none
     // Deleting Symbol
     // | KeyPress DEL ->
-    //     printfn "Delete Comp"
-    //     model, Cmd.ofMsg (Wire <| BusWire.Symbol (Symbol.DeleteSymbol ))
+    //     printfn "Delete Comp(s)"
+    //     let delCompList = model.Selected
+    //     {model with Selected=[]}, Cmd.map (Wire <| BusWire.Symbol (Symbol.DeleteSymbol delCompList))
     // Wire Colour changes
     | KeyPress s -> // all other keys are turned into SetColor commands
         let c =
