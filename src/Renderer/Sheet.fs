@@ -109,11 +109,11 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                               //need to send list of selected items - for highlighting
                   | None -> {model with Selected=[]} , Cmd.none
         | Up -> model, Cmd.none
-        | Drag -> model, Cmd.none
-        | Move -> match overComp with
+        | Drag -> match overComp with
                   | Some x -> printfn "%A" x
                               model, Cmd.none
-                  | None -> {model with Selected=[]} , Cmd.none
+                  | None -> model, Cmd.none
+        | Move -> model, Cmd.none
     // sending messages to buswire - only comm. path
     // all other update functions that need to comm. with other paths
     // will send an update function to this DU
@@ -152,7 +152,16 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
 
     | KeyPress DEL ->
         let delCompList = model.Selected
-        {model with Selected=[]},Cmd.ofMsg (Wire <| BusWire.Symbol (DeleteSymbol delCompList))
+        //remove the bounding boxes
+        let remainingbBoxes = 
+            model.Boxes
+            |> Map.toList
+            // |> List.map (fun (x,y) -> (y,x))
+            |> List.filter (fun (pos,bBoxId)-> match List.tryFind (fun delId-> delId=bBoxId) delCompList with
+                                               | Some x -> false
+                                               | None -> true) 
+            |> Map.ofList
+        {model with Selected=[];Boxes=remainingbBoxes},Cmd.ofMsg (Wire <| BusWire.Symbol (DeleteSymbol delCompList))
 
     // Wire Colour changes
     | KeyPress s -> // all other keys are turned into SetColor commands
