@@ -24,6 +24,7 @@ type Symbol =
         LastDragPos : XYPos
         IsDragging : bool
         Id : CommonTypes.ComponentId
+        Color : CommonTypes.HighLightColor
     }
 
 
@@ -47,7 +48,7 @@ type Msg =
     | Dragging of sId : CommonTypes.ComponentId * pagePos: XYPos
     | EndDragging of sId : CommonTypes.ComponentId
     | AddCircle of XYPos * CommonTypes.ComponentId// used by demo code to add a circle
-    | DeleteSymbol of sId:CommonTypes.ComponentId 
+    | DeleteSymbol of sId:CommonTypes.ComponentId List
     | UpdateSymbolModelWithComponent of CommonTypes.Component // Issie interface
 
 
@@ -81,6 +82,7 @@ let createNewSymbol (pos:XYPos)(id:CommonTypes.ComponentId ) =
         IsDragging = false // initial value can always be this
         Id = id // create a unique id for this symbol
         // SymbolType = CommonTypes.ComponentType
+        Color = CommonTypes.Grey
     }
 
 
@@ -98,8 +100,10 @@ let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
     match msg with
     | AddCircle (pos, id) -> 
         {model with SymbolsList=(createNewSymbol pos id) :: model.SymbolsList}, Cmd.none
-    | DeleteSymbol sId -> 
-        {model with SymbolsList=List.filter (fun sym -> sym.Id <> sId) model.SymbolsList}, Cmd.none
+    | DeleteSymbol sIdList -> 
+        {model with SymbolsList=List.filter (fun sym -> match List.tryFind (fun x -> sym.Id = x) sIdList with
+                                                        | Some x -> false
+                                                        | None -> true        )  model.SymbolsList}, Cmd.none
     | StartDragging (sId, pagePos) ->
         {model with SymbolsList=
                             model.SymbolsList
@@ -114,7 +118,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
                             )
         }
         , Cmd.none
-
+    // | Selected - implement
     | Dragging (rank, pagePos) ->
         {model with SymbolsList=
                             model.SymbolsList
@@ -174,7 +178,8 @@ let private renderCircle =
                 if props.Circle.IsDragging then
                     "lightblue"
                 else
-                    "grey"
+                    let colour = sprintf "%A" props.Circle.Color
+                    colour
 
             circle
                 [ 
