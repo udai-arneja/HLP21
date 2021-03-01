@@ -47,9 +47,10 @@ type Msg =
     /// coords not adjusted for top-level zoom
     | Dragging of sId : CommonTypes.ComponentId * pagePos: XYPos
     | EndDragging of sId : CommonTypes.ComponentId
-    | AddCircle of XYPos * CommonTypes.ComponentId// used by demo code to add a circle
+    | AddSquare of XYPos * CommonTypes.ComponentId// used by demo code to add a circle
     | DeleteSymbol of sId:CommonTypes.ComponentId List
     | UpdateSymbolModelWithComponent of CommonTypes.Component // Issie interface
+    | SymbolColor of CommonTypes.ComponentId * CommonTypes.HighLightColor
 
 
 //---------------------------------helper types and functions----------------//
@@ -98,7 +99,7 @@ let init () =
 /// update function which displays symbols
 let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
     match msg with
-    | AddCircle (pos, id) -> 
+    | AddSquare (pos, id) -> 
         {model with SymbolsList=(createNewSymbol pos id) :: model.SymbolsList}, Cmd.none
     | DeleteSymbol sIdList -> 
         {model with SymbolsList=List.filter (fun sym -> match List.tryFind (fun x -> sym.Id = x) sIdList with
@@ -148,61 +149,67 @@ let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
         }
         , Cmd.none
     | MouseMsg x -> {model with MouseInfo=x}, Cmd.none // allow unused mouse messags
+    | SymbolColor (sId,newColor) -> {model with SymbolsList=
+                                                   model.SymbolsList
+                                                   |> List.map (fun sym-> if sym.Id=sId
+                                                                           then {sym with Color= newColor}
+                                                                           else sym)},Cmd.none
     | _ -> failwithf "Not implemented"
 
 //----------------------------View Function for Symbols----------------------------//
 
 /// Input to react component (which does not re-evaluate when inputs stay the same)
 /// This generates View (react virtual DOM SVG elements) for one symbol
-type private RenderCircleProps =
+type private RenderSquareProps =
     {
-        Circle : Symbol // name works for the demo!
+        Square : Symbol // name works for the demo!
         Dispatch : Dispatch<Msg>
         key: string // special field used by react to detect whether lists have changed, set to symbol Id
     }
 
 /// View for one symbol with caching for efficient execution when input does not change
-let private renderCircle =
+let private renderSquare =
     FunctionComponent.Of(
-        fun (props : RenderCircleProps) ->
+        fun (props : RenderSquareProps) ->
             let handleMouseMove =
                 Hooks.useRef(fun (ev : Types.Event) ->
                     let ev = ev :?> Types.MouseEvent
                     // x,y coordinates here do not compensate for transform in Sheet
                     // and are wrong unless zoom=1.0 MouseMsg coordinates are correctly compensated.
-                    Dragging(props.Circle.Id, posOf ev.pageX ev.pageY)
+                    Dragging(props.Square.Id, posOf ev.pageX ev.pageY)
                     |> props.Dispatch
                 )
 
             let color =
-                if props.Circle.IsDragging then
+                if props.Square.IsDragging then
                     "lightblue"
                 else
-                    let colour = sprintf "%A" props.Circle.Color
-                    colour
+                    let colour2 = sprintf "%A" props.Square.Color
+                    colour2
 
-            circle
+            rect
                 [ 
                     OnMouseUp (fun ev -> 
                         document.removeEventListener("mousemove", handleMouseMove.current)
-                        EndDragging props.Circle.Id
+                        EndDragging props.Square.Id
                         |> props.Dispatch
                     )
                     OnMouseDown (fun ev -> 
                         // See note above re coords wrong if zoom <> 1.0
-                        StartDragging (props.Circle.Id, posOf ev.pageX ev.pageY)
+                        StartDragging (props.Square.Id, posOf ev.pageX ev.pageY)
                         |> props.Dispatch
                         document.addEventListener("mousemove", handleMouseMove.current)
                     )
-                    Cx props.Circle.Pos.X
-                    Cy props.Circle.Pos.Y
-                    R 20.
+                    X props.Square.Pos.X
+                    Y props.Square.Pos.Y
+                    SVGAttr.Width 300
+                    SVGAttr.Height 500
                     SVGAttr.Fill color
                     SVGAttr.Stroke color
                     SVGAttr.StrokeWidth 1
                 ]
                 [ ]
-    , "Circle"
+    , "Square"
     , equalsButFunctions
     )
 
@@ -210,9 +217,9 @@ let private renderCircle =
 let view (model : Model) (dispatch : Msg -> unit) = 
     model.SymbolsList
     |> List.map (fun ({Id = CommonTypes.ComponentId id} as circle) ->
-        renderCircle 
+        renderSquare
             {
-                Circle = circle
+                Square = circle
                 Dispatch = dispatch
                 key = id
             }
