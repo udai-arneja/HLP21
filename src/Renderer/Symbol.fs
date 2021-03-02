@@ -50,7 +50,7 @@ type Msg =
     | AddSquare of XYPos * CommonTypes.ComponentId// used by demo code to add a circle
     | DeleteSymbol of sId:CommonTypes.ComponentId List
     | UpdateSymbolModelWithComponent of CommonTypes.Component // Issie interface
-    | SymbolColor of CommonTypes.ComponentId * CommonTypes.HighLightColor
+    | SymbolColor of (CommonTypes.ComponentId list )* CommonTypes.HighLightColor
 
 
 //---------------------------------helper types and functions----------------//
@@ -151,9 +151,10 @@ let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
     | MouseMsg x -> {model with MouseInfo=x}, Cmd.none // allow unused mouse messags
     | SymbolColor (sId,newColor) -> {model with SymbolsList=
                                                    model.SymbolsList
-                                                   |> List.map (fun sym-> if sym.Id=sId
+                                                   |> List.map (fun sym->  if List.contains sym.Id sId
                                                                            then {sym with Color= newColor}
-                                                                           else sym)},Cmd.none
+                                                                           else sym)
+                                    },Cmd.none
     | _ -> failwithf "Not implemented"
 
 //----------------------------View Function for Symbols----------------------------//

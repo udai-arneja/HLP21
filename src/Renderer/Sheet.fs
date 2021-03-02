@@ -76,7 +76,6 @@ let displaySvgWithZoom (zoom: float) (multisel:bool) (svgReact: ReactElement) mS
                     Border "3px solid green"
                     Height sizeInPixels
                     Width sizeInPixels     
-                    // AlignItems AlignItemsOptions.Center
                 ]
             ]
             [ g // group list of elements with list of attributes
@@ -158,23 +157,21 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         | Down -> match overComp with
                   | Some (pos1,pos2,iD) -> printfn "Selected: %A" iD
                                            if List.isEmpty model.Selected
-                                           then {model with Selected=[iD];LastOp=Down}, Cmd.ofMsg (selColorMsg iD)
-                                           else {model with Selected=[];LastOp=Down}, Cmd.ofMsg (unSelColorMsg model.Selected.[0])  
+                                           then {model with Selected=[iD];LastOp=Down}, Cmd.ofMsg (selColorMsg [iD])
+                                           else {model with Selected=[];LastOp=Down}, Cmd.ofMsg (unSelColorMsg model.Selected)  
                                            //need to unselect and select new!
                   | None -> if model.Selected <> []
                             then let iD = model.Selected.[0]
-                                 {model with Selected=[];LastOp=Down;StartMultiSelBox=mouseDownPos;EndMultiSelBox=mouseDownPos},Cmd.ofMsg (unSelColorMsg iD)
+                                 {model with Selected=[];LastOp=Down;StartMultiSelBox=mouseDownPos;EndMultiSelBox=mouseDownPos},Cmd.ofMsg (unSelColorMsg [iD])
                             else {model with LastOp=Down;StartMultiSelBox=mouseDownPos;EndMultiSelBox=mouseDownPos}, Cmd.none
         | Up -> printfn "Last Op: %A" model.LastOp
                 match model.LastOp with
                 | Drag -> if List.isEmpty model.Selected
-                          then let multiselected= printfn "%A" (inSelBox (model.StartMultiSelBox,model.EndMultiSelBox))
-                                                  inSelBox (model.StartMultiSelBox,model.EndMultiSelBox)
-                            //    {model with Selected=[];LastOp=Up;EndMultiSelBox={X=0.;Y=0.};StartMultiSelBox={X=0.;Y=0.}}, Cmd.none
-                               {model with Selected=multiselected;LastOp=Up;EndMultiSelBox={X=0.;Y=0.};StartMultiSelBox={X=0.;Y=0.}}, Cmd.none //implement multi-select by dragging
+                          then let multiselected= inSelBox (model.StartMultiSelBox,model.EndMultiSelBox)
+                               {model with Selected=multiselected;LastOp=Up;EndMultiSelBox={X=0.;Y=0.};StartMultiSelBox={X=0.;Y=0.}}, Cmd.ofMsg (selColorMsg multiselected) //implement multi-select by dragging
                           else printfn "Updated BBox"
                                let pos1,pos2,iD = List.find (fun (pos1,pos2,symid) -> symid=model.Selected.[0]) model.Boxes
-                               {model with Selected=[];Boxes=updateBBox(pos1,pos2,iD);LastOp=Up}, Cmd.ofMsg (unSelColorMsg iD)
+                               {model with Selected=[];Boxes=updateBBox(pos1,pos2,iD);LastOp=Up}, Cmd.ofMsg (unSelColorMsg [iD])
                                //if the over comp is true then should be green rather than grey?
                 | _ -> {model with LastOp=Up}, Cmd.none
         | Drag -> if List.isEmpty model.Selected
@@ -183,13 +180,13 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         | Move -> match overComp with
                   | Some (pos1,pos2,iD) -> printfn "Hovering: %A" iD
                                            if List.isEmpty model.Selected
-                                           then {model with Hovering=[iD]}, Cmd.ofMsg (hovColorMsg iD)
+                                           then {model with Hovering=[iD]}, Cmd.ofMsg (hovColorMsg [iD])
                                            else model, Cmd.none
                   | None -> if List.isEmpty model.Hovering
                             then model, Cmd.none    //hovering empty
                             else if List.isEmpty model.Selected 
                                  then let iD = model.Hovering.[0]   //hovering not empty, selected empty
-                                      {model with Hovering=[]},Cmd.ofMsg (unSelColorMsg iD)   
+                                      {model with Hovering=[]},Cmd.ofMsg (unSelColorMsg [iD])   
                                  else {model with Hovering=[]},Cmd.none //hovering not empty, selected not empty
 
     // sending messages to buswire - only comm. path
