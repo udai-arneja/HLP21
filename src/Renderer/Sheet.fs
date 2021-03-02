@@ -20,6 +20,8 @@ type Model = {
     Selected: (CommonTypes.ComponentId) list
     Hovering: CommonTypes.ComponentId list
     LastOp: Helpers.MouseOp
+    StartMultiSelBox: XYPos
+    EndMultiSelBox: XYPos
     }
 
 type KeyboardMsg =
@@ -29,18 +31,30 @@ type Msg =
     | Wire of BusWire.Msg
     | KeyPress of KeyboardMsg
 
+type SelectingBox={
+    TopCorner: XYPos
+    BottomCorner: XYPos
+}
+
 // type TopMenu = | Closed | Project | Files
 
 ///helper functions to be moved out later
 
+//selection,hovering and unselection colors
+let selColorMsg symId= (Wire <| BusWire.Symbol (Symbol.SymbolColor (symId,CommonTypes.Red)) )
+let hovColorMsg symId= (Wire <| BusWire.Symbol (Symbol.SymbolColor (symId,CommonTypes.Green)) )
+let unSelColorMsg symId = (Wire <| BusWire.Symbol (Symbol.SymbolColor (symId,CommonTypes.Grey)) )
+
 /// This function zooms an SVG canvas by transforming its content and altering its size.
 /// Currently the zoom expands based on top left corner. Better would be to collect dimensions
 /// current scroll position, and chnage scroll position to keep centre of screen a fixed point.
-let displaySvgWithZoom (zoom: float) (multisel:bool) (svgReact: ReactElement) (dispatch: Dispatch<Msg>)=
+let displaySvgWithZoom (zoom: float) (multisel:bool) (svgReact: ReactElement) mSW mSH (dispatch: Dispatch<Msg>)=
     let sizeInPixels = sprintf "%.2fpx" ((1500. * zoom))
     /// Is the mouse button currently down?
     let mDown (ev:Types.MouseEvent) = 
         if ev.buttons <> 0. then true else false
+    
+    let dimensions = sprintf "%f,%f %f,%f %f,%f %f,%f" mSW.X mSW.Y mSW.X mSH.Y mSH.X mSH.Y mSH.X mSW.Y
     /// Dispatch a BusWire MouseMsg message
     /// the screen mouse coordinates are compensated for the zoom transform
     let mouseOp op (ev:Types.MouseEvent) = 
@@ -78,9 +92,17 @@ let displaySvgWithZoom (zoom: float) (multisel:bool) (svgReact: ReactElement) (d
                             FontWeight "Bold"
                             Fill "Green" // font color
                         ]
-                        ] [str "A lot of experimentation"]
+                        ] [str "A whole lot of experimentation"]
 
                     svgReact // the application code
+
+                    polygon [
+                        SVGAttr.Points dimensions
+                        SVGAttr.StrokeWidth "1px"
+                        SVGAttr.Stroke "Black"
+                        SVGAttr.FillOpacity 0.1
+                        SVGAttr.Fill "Blue"
+                        ] []
                 ]
             ]
         ]
@@ -92,7 +114,9 @@ let view (model:Model) (dispatch : Msg -> unit) =
     let wireSvg = BusWire.view model.Wire wDispatch
     let zoom = model.Zoom
     let multisel = model.Multi
-    displaySvgWithZoom zoom multisel wireSvg dispatch
+    let startMSBox= model.StartMultiSelBox
+    let endMSBox= model.EndMultiSelBox
+    displaySvgWithZoom zoom multisel wireSvg startMSBox endMSBox dispatch
        
 
 let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
@@ -104,39 +128,63 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         |> List.except [(pos1,pos2,iD)]
         |> List.append [({X = newSymPos.X; Y = newSymPos.Y},{X=pos2.X+posDiff.X; Y=pos2.Y+posDiff.Y},iD)]
 
+    let inSelBox (sc, ec) =     //sc : start corner, ec: end corner
+        let corners = if sc.X < ec.X     //dragging left to right
+                         then if sc.Y < ec.Y
+                              then {TopCorner=sc;BottomCorner=ec}          //dragging up to down
+                                // (sc, ec)
+                              else {TopCorner={X=sc.X;Y=ec.Y};BottomCorner={X=ec.X;Y=sc.Y}}    //dragging down to up
+                         else if sc.Y > ec.Y    //dragging right to left
+                              then {TopCorner=ec;BottomCorner=sc}  //dragging down to up
+                              else {TopCorner={X=ec.X;Y=sc.Y};BottomCorner={X=sc.X;Y=ec.Y}}   //dragging up to down
+        
+        let overlap (pos1,pos2,id) = if corners.TopCorner.X<pos1.X && corners.BottomCorner.X>pos1.X 
+                                        ||corners.TopCorner.X<pos2.X && corners.BottomCorner.X>pos2.X
+                                     then if corners.TopCorner.Y<pos1.Y && corners.BottomCorner.Y>pos1.Y
+                                             ||corners.TopCorner.Y<pos2.Y && corners.BottomCorner.Y>pos2.Y
+                                          then Some id
+                                          else None
+                                     else None
+        List.choose (fun (pos1,pos2,id) -> overlap (pos1,pos2,id)) model.Boxes
+
     match msg with
     | Wire (BusWire.MouseMsg {Op = mouseState ; Pos = { X = mX; Y = mY}; Zoom = zoom}) ->
         //is this mouse over a component - if so return the component Id
         let overComp = List.tryFind (fun (co1,co2,symId) -> co1.X<mX && co2.X>mX && co1.Y<mY && co2.Y>mY) model.Boxes
-        //mouseState to determine functionality
-
-        let selColorMsg symId= (Wire <| BusWire.Symbol (Symbol.SymbolColor (symId,CommonTypes.Red)) )
-        let hovColorMsg symId= (Wire <| BusWire.Symbol (Symbol.SymbolColor (symId,CommonTypes.Green)) )
-        let unSelColorMsg symId = (Wire <| BusWire.Symbol (Symbol.SymbolColor (symId,CommonTypes.Grey)) )
+        //mouseposition - used when dragging to make the multi-select box
+        let mouseDownPos = {X=mX;Y=mY}
+        
         match mouseState with
         | Down -> match overComp with
                   | Some (pos1,pos2,iD) -> printfn "Selected: %A" iD
-                                           {model with Selected=[iD];LastOp=Down}, Cmd.ofMsg (selColorMsg iD)
+                                           if List.isEmpty model.Selected
+                                           then {model with Selected=[iD];LastOp=Down}, Cmd.ofMsg (selColorMsg iD)
+                                           else {model with Selected=[];LastOp=Down}, Cmd.ofMsg (unSelColorMsg model.Selected.[0])  
+                                           //need to unselect and select new!
                   | None -> if model.Selected <> []
                             then let iD = model.Selected.[0]
-                                 {model with Selected=[];LastOp=Down},Cmd.ofMsg (unSelColorMsg iD)
-                            else {model with LastOp=Down}, Cmd.none
+                                 {model with Selected=[];LastOp=Down;StartMultiSelBox=mouseDownPos;EndMultiSelBox=mouseDownPos},Cmd.ofMsg (unSelColorMsg iD)
+                            else {model with LastOp=Down;StartMultiSelBox=mouseDownPos;EndMultiSelBox=mouseDownPos}, Cmd.none
         | Up -> printfn "Last Op: %A" model.LastOp
                 match model.LastOp with
                 | Drag -> if List.isEmpty model.Selected
-                          then {model with Selected=[];LastOp=Up}, Cmd.none //implement multi-select by dragging
+                          then let multiselected= printfn "%A" (inSelBox (model.StartMultiSelBox,model.EndMultiSelBox))
+                                                  inSelBox (model.StartMultiSelBox,model.EndMultiSelBox)
+                            //    {model with Selected=[];LastOp=Up;EndMultiSelBox={X=0.;Y=0.};StartMultiSelBox={X=0.;Y=0.}}, Cmd.none
+                               {model with Selected=multiselected;LastOp=Up;EndMultiSelBox={X=0.;Y=0.};StartMultiSelBox={X=0.;Y=0.}}, Cmd.none //implement multi-select by dragging
                           else printfn "Updated BBox"
                                let pos1,pos2,iD = List.find (fun (pos1,pos2,symid) -> symid=model.Selected.[0]) model.Boxes
                                {model with Selected=[];Boxes=updateBBox(pos1,pos2,iD);LastOp=Up}, Cmd.ofMsg (unSelColorMsg iD)
+                               //if the over comp is true then should be green rather than grey?
                 | _ -> {model with LastOp=Up}, Cmd.none
-        | Drag -> {model with LastOp=Drag}, Cmd.none
+        | Drag -> if List.isEmpty model.Selected
+                  then {model with LastOp=Drag;EndMultiSelBox=mouseDownPos}, Cmd.none
+                  else {model with LastOp=Drag}, Cmd.none
         | Move -> match overComp with
-                  | Some (pos1,pos2,iD) -> printfn "Selected: %A" iD
+                  | Some (pos1,pos2,iD) -> printfn "Hovering: %A" iD
                                            if List.isEmpty model.Selected
                                            then {model with Hovering=[iD]}, Cmd.ofMsg (hovColorMsg iD)
                                            else model, Cmd.none
-                            //   {model with Selected=model.Boxes.[x]::model.Selected}, Cmd.none
-                              //need to send list of selected items - for highlighting
                   | None -> if List.isEmpty model.Hovering
                             then model, Cmd.none    //hovering empty
                             else if List.isEmpty model.Selected 
@@ -209,6 +257,8 @@ let init() =
         Selected=[]
         Hovering=[]
         LastOp = Move
+        StartMultiSelBox={X=0.;Y=0.}
+        EndMultiSelBox={X=0.;Y=0.}
     }, Cmd.map Wire cmds
 //need to remove all the initial boxes and do bounding boxes as components are added
 
