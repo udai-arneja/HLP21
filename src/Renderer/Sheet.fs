@@ -37,7 +37,6 @@ type SelectingBox={
     BottomCorner: XYPos
 }
 
-// type TopMenu = | Closed | Project | Files
 
 ///helper functions to be moved out later
 
@@ -171,6 +170,12 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         | None -> match List.tryFind (fun (prt:CommonTypes.Port) -> (dist prt.PortPos mousepos)<40. ) symb.OutputPorts with
                   | Some x -> Some x
                   | None -> None
+
+    //stop hovering (changing the colour back to grey) when drawing a wire
+    let portandhovering (startport:CommonTypes.Port) (iD: CommonTypes.ComponentId): Model*Cmd<Msg> =
+        if List.isEmpty model.Hovering
+        then {model with LastOp=Down;SCursor=startport.PortPos;ECursor=startport.PortPos;WorMS=false;SelectedPort=[startport]}, Cmd.none
+        else {model with LastOp=Down;SCursor=startport.PortPos;ECursor=startport.PortPos;WorMS=false;SelectedPort=[startport];Hovering=[]}, Cmd.ofMsg (unSelColorMsg [iD])
         
     //message and model processing and updating
     match msg with
@@ -192,9 +197,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         | Down -> match overComp with
                   | Some (pos1,pos2,iD) -> if List.isEmpty model.Selected
                                            then match (inRangeofPort mousePos iD) with
-                                                | Some startport -> if List.isEmpty model.Hovering
-                                                                    then {model with LastOp=Down;SCursor=startport.PortPos;ECursor=startport.PortPos;WorMS=false;SelectedPort=[startport]}, Cmd.none
-                                                                    else {model with LastOp=Down;SCursor=startport.PortPos;ECursor=startport.PortPos;WorMS=false;SelectedPort=[startport];Hovering=[]}, Cmd.ofMsg (unSelColorMsg [iD])
+                                                | Some startport -> (portandhovering startport iD)        //sending stop hovering message
                                                 | None -> {model with Selected=[iD];LastOp=Down}, Cmd.ofMsg (selColorMsg [iD])
                                             else if List.contains iD model.Selected
                                                  then {model with LastOp=Down}, Cmd.none
@@ -297,11 +300,6 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         printfn "Key:%A" c
         model, Cmd.ofMsg (Wire <| BusWire.SetColor c)
 
-//  FOR INTERFACING
-
-    //returns a list of wires to be deleted
-    // let delWires (symbList:Symbol.Symbol list) : BusWire.Wire list = 
-    //     List.filter (fun wire -> (List.contains wire.SrcSymbol symbList) || (List.contains wire.TargetSymbol symbList)) model.Wire.WX
 
 let init() = 
     let model,cmds = (BusWire.init 0)()
@@ -321,3 +319,27 @@ let init() =
 
 
 
+//  FOR INTERFACING
+
+    //new component
+    // let compid = CommonTypes.ComponentId (Helpers.uuid())
+    // let symbolPos = {X=mX.;Y=mY.}
+    // let symbolType = THE SYMBOL TYPE
+    //     //can be mouse co-ordinates or however the position of a new component will be implemented
+    // let newCompInfo = (symbolPos,symbolPos,compid,symbolType, inputports, outputports)
+    //     //all the info needed for a new comp - updated when interfacing with Symbol
+
+    // let getComp = this will be got from symbol using the common types .fs
+    // let boundingBoxInfo = {X=symbolPos.X;Y=symbolPos.Y},{X=symbolPos.X+getComp.W;Y=symbolPos.Y+getComp.H.},compid
+
+    //when dragging: 
+    // let draggingMsg (symId: CommonTypes.ComponentId) (mousePos: XYPos) : Msg = (Wire <| BusWire.Symbol (Symbol.Dragging (symId,mousePos)) )
+    // let enddraggingMsg (symId: CommonTypes.ComponentId) : Msg = (Wire <| BusWire.Symbol (Symbol.Dragging (symId)) )
+
+    //returns a list of wires to be deleted
+    // let delWires (symbList:Symbol.Symbol list) : BusWire.Wire list = 
+    //     List.filter (fun wire -> (List.contains wire.SrcSymbol symbList) || (List.contains wire.TargetSymbol symbList)) model.Wire.WX
+
+    // let highlightWires (symbList:Symbol.Symbol list) : BusWire.Wire list = this will be based on the bounding boxes in Wires model and will
+    // contain a colour
+    //similar as above for selecting wire but will include XYPos
