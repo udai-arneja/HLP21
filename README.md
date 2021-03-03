@@ -1,3 +1,4 @@
+<--
 # SVG Draw Application Project Skeleton Code For HLP Project 2021
 
 See [The SVG Demo README](https://github.com/tomcl/hlp21-svg-elmish-demo/blob/master/README.md) for 
@@ -165,5 +166,7 @@ all contain code using the electron framework. Fork and clone (or clone) the Iss
 Build them once to get fully working intellisense and view the code (with type information and documentation) in an IDE.
 
 
+
+-->
 
 
