@@ -25,6 +25,8 @@ type Symbol =
         IsDragging : bool
         Id : CommonTypes.ComponentId
         Color : CommonTypes.HighLightColor
+        InputPorts : CommonTypes.Port list
+        OutputPorts : CommonTypes.Port list
     }
 
 
@@ -84,8 +86,9 @@ let createNewSymbol (pos:XYPos)(id:CommonTypes.ComponentId ) =
         Id = id // create a unique id for this symbol
         // SymbolType = CommonTypes.ComponentType
         Color = CommonTypes.Grey
+        InputPorts=[{Id=Helpers.uuid();PortPos={X=pos.X+10.;Y=pos.Y+210.};PortType=CommonTypes.Input;PortNumber=Some 0;HostId=string(id)}]
+        OutputPorts=[{Id=Helpers.uuid();PortPos={X=pos.X+290.;Y=pos.Y+210.};PortType=CommonTypes.Output;PortNumber=Some 1;HostId=string(id)}]
     }
-
 
 /// Dummy function for test. The real init would probably have no symbols.
 let init () =
@@ -128,8 +131,12 @@ let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
                                     sym
                                 else
                                     let diff = posDiff pagePos sym.LastDragPos
+                                    let updateport (list:CommonTypes.Port list) = 
+                                        [{list.[0] with PortPos=(posAdd list.[0].PortPos diff)}]
                                     { sym with
                                         Pos = posAdd sym.Pos diff
+                                        InputPorts = (updateport sym.InputPorts)
+                                        OutputPorts = (updateport sym.OutputPorts)
                                         LastDragPos = pagePos
                                     }
                             )
@@ -182,34 +189,120 @@ let private renderSquare =
                 )
 
             let color =
-                if props.Square.IsDragging then
-                    "lightblue"
-                else
-                    let colour2 = sprintf "%A" props.Square.Color
-                    colour2
-
-            rect
-                [ 
-                    OnMouseUp (fun ev -> 
-                        document.removeEventListener("mousemove", handleMouseMove.current)
-                        EndDragging props.Square.Id
-                        |> props.Dispatch
-                    )
-                    OnMouseDown (fun ev -> 
-                        // See note above re coords wrong if zoom <> 1.0
-                        StartDragging (props.Square.Id, posOf ev.pageX ev.pageY)
-                        |> props.Dispatch
-                        document.addEventListener("mousemove", handleMouseMove.current)
-                    )
-                    X props.Square.Pos.X
-                    Y props.Square.Pos.Y
-                    SVGAttr.Width 300
-                    SVGAttr.Height 500
-                    SVGAttr.Fill color
-                    SVGAttr.Stroke color
-                    SVGAttr.StrokeWidth 1
+                if props.Square.IsDragging then "lightblue"
+                else let colour2 = sprintf "%A" props.Square.Color
+                     colour2
+            g    [][
+                rect
+                    [ 
+                        OnMouseUp (fun ev -> 
+                            document.removeEventListener("mousemove", handleMouseMove.current)
+                            EndDragging props.Square.Id
+                            |> props.Dispatch
+                        )
+                        OnMouseDown (fun ev -> 
+                            // See note above re coords wrong if zoom <> 1.0
+                            StartDragging (props.Square.Id, posOf ev.pageX ev.pageY)
+                            |> props.Dispatch
+                            document.addEventListener("mousemove", handleMouseMove.current)
+                        )
+                        X props.Square.Pos.X
+                        Y props.Square.Pos.Y
+                        SVGAttr.Width 300
+                        SVGAttr.Height 500
+                        SVGAttr.Fill color
+                        SVGAttr.Stroke color
+                        SVGAttr.StrokeWidth 1
+                    ]
+                    [ ]
+                text
+                    [ X (props.Square.Pos.X + 150.) 
+                      Y (props.Square.Pos.Y + 40.)
+                      Style
+                            [
+                                 TextAnchor "middle"
+                                 DominantBaseline "hanging"
+                                 FontSize "50px"
+                                 FontWeight "Normal"
+                                 Fill "Black"
+                             ]
+                    ] 
+                    [str "TEST"]
+                text
+                    [ X (props.Square.Pos.X + 60.) 
+                      Y (props.Square.Pos.Y + 200.)
+                      Style
+                            [
+                                 TextAnchor "middle"
+                                 DominantBaseline "hanging"
+                                 FontSize "30px"
+                                 FontWeight "Normal"
+                                 Fill "Black"
+                             ]
+                    ] 
+                    [str "Input 1"]
+                // text
+                //     [ X (props.Square.Pos.X + 60.) 
+                //       Y (props.Square.Pos.Y + 200.+80.)
+                //       Style
+                //             [
+                //                  TextAnchor "middle"
+                //                  DominantBaseline "hanging"
+                //                  FontSize "30px"
+                //                  FontWeight "Normal"
+                //                  Fill "Black"
+                //              ]
+                //     ] 
+                //     [str "Input 2"]
+                text
+                    [ X (props.Square.Pos.X + 230.) 
+                      Y (props.Square.Pos.Y + 200.)
+                      Style
+                            [
+                                 TextAnchor "middle"
+                                 DominantBaseline "hanging"
+                                 FontSize "30px"
+                                 FontWeight "Normal"
+                                 Fill "Black"
+                             ]
+                    ] 
+                    [str "Output 1"]
+                // text
+                //     [ X (props.Square.Pos.X + 230.) 
+                //       Y (props.Square.Pos.Y + 200.+80.)
+                //       Style
+                //             [
+                //                  TextAnchor "middle"
+                //                  DominantBaseline "hanging"
+                //                  FontSize "30px"
+                //                  FontWeight "Normal"
+                //                  Fill "Black"
+                //              ]
+                //     ] 
+                //     [str "Output 2"]
+                circle
+                    [
+                        Cx (props.Square.Pos.X + 290.) 
+                        Cy (props.Square.Pos.Y + 210.)
+                        R 30.
+                        SVGAttr.Fill "blue"
+                        SVGAttr.Stroke "blue"
+                        SVGAttr.StrokeWidth 1
+                        SVGAttr.FillOpacity 0.3
+                    ]
+                    [ ]
+                circle
+                    [
+                        Cx (props.Square.Pos.X + 10.) 
+                        Cy (props.Square.Pos.Y + 210.)
+                        R 30.
+                        SVGAttr.Fill "blue"
+                        SVGAttr.Stroke "blue"
+                        SVGAttr.StrokeWidth 1
+                        SVGAttr.FillOpacity 0.3
+                    ]
+                    [ ]
                 ]
-                [ ]
     , "Square"
     , equalsButFunctions
     )

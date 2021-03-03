@@ -14,14 +14,15 @@ open Symbol
 type Model = {
     Wire: BusWire.Model;
     Zoom: float;
-    Multi: bool;
-    // Boxes: (XYPos*XYPos) list
-    Boxes: (XYPos * XYPos * CommonTypes.ComponentId) list
-    Selected: (CommonTypes.ComponentId) list
-    Hovering: CommonTypes.ComponentId list
-    LastOp: Helpers.MouseOp
-    StartMultiSelBox: XYPos
-    EndMultiSelBox: XYPos
+    // Multi: bool;
+    Boxes: (XYPos * XYPos * CommonTypes.ComponentId) list;
+    Selected: (CommonTypes.ComponentId) list;
+    Hovering: CommonTypes.ComponentId list;
+    LastOp: Helpers.MouseOp;
+    SCursor: XYPos;             // start cursor for drawing wire or multi-select box
+    ECursor: XYPos;             // end cursor for drawing wire or multi-select box
+    WorMS: bool;                 //true is multi-select box, false is wire
+    SelectedPort: CommonTypes.Port list
     }
 
 type KeyboardMsg =
@@ -40,15 +41,16 @@ type SelectingBox={
 
 ///helper functions to be moved out later
 
-//selection,hovering and unselection colors
+//selection,hovering and unselection colors - these can be updated to interface with symbol or buswire
 let selColorMsg symId= (Wire <| BusWire.Symbol (Symbol.SymbolColor (symId,CommonTypes.Red)) )
 let hovColorMsg symId= (Wire <| BusWire.Symbol (Symbol.SymbolColor (symId,CommonTypes.Green)) )
 let unSelColorMsg symId = (Wire <| BusWire.Symbol (Symbol.SymbolColor (symId,CommonTypes.Grey)) )
+let newWire ports = (Wire <| BusWire.AddWire ports )
 
 /// This function zooms an SVG canvas by transforming its content and altering its size.
 /// Currently the zoom expands based on top left corner. Better would be to collect dimensions
 /// current scroll position, and chnage scroll position to keep centre of screen a fixed point.
-let displaySvgWithZoom (zoom: float) (multisel:bool) (svgReact: ReactElement) mSW mSH (dispatch: Dispatch<Msg>)=
+let displaySvgWithZoom (zoom: float) (svgReact: ReactElement) mSW mSH sLine eLine worMS (dispatch: Dispatch<Msg>)=
     let sizeInPixels = sprintf "%.2fpx" ((1500. * zoom))
     /// Is the mouse button currently down?
     let mDown (ev:Types.MouseEvent) = 
@@ -95,48 +97,62 @@ let displaySvgWithZoom (zoom: float) (multisel:bool) (svgReact: ReactElement) mS
 
                     svgReact // the application code
 
-                    polygon [
-                        SVGAttr.Points dimensions
-                        SVGAttr.StrokeWidth "1px"
-                        SVGAttr.Stroke "Black"
-                        SVGAttr.FillOpacity 0.1
-                        SVGAttr.Fill "Blue"
+                    //if wire between ports draw a line, otherwise draw a multi-selecting box
+                    if worMS
+                    then
+                        polygon [
+                            SVGAttr.Points dimensions
+                            SVGAttr.StrokeWidth "1px"
+                            SVGAttr.Stroke "Black"
+                            SVGAttr.FillOpacity 0.1
+                            SVGAttr.Fill "Blue"
+                            ] []
+                    else
+                        line [
+                            X1 sLine.X; Y1 sLine.Y; X2 eLine.X; Y2 eLine.Y; Style [Stroke "Black";StrokeWidth "3px"]
                         ] []
                 ]
             ]
         ]
 
 
-/// for the demo code
 let view (model:Model) (dispatch : Msg -> unit) =
     let wDispatch wMsg = dispatch (Wire wMsg)
     let wireSvg = BusWire.view model.Wire wDispatch
     let zoom = model.Zoom
-    let multisel = model.Multi
-    let startMSBox= model.StartMultiSelBox
-    let endMSBox= model.EndMultiSelBox
-    displaySvgWithZoom zoom multisel wireSvg startMSBox endMSBox dispatch
+    let startMSBox= model.SCursor
+    let endMSBox=model.ECursor
+    let startline = model.SCursor
+    let endline = model.ECursor
+    let worMS = model.WorMS
+    displaySvgWithZoom zoom wireSvg startMSBox endMSBox startline endline worMS dispatch
        
 
 let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
     
-    let updateBBox (pos1,pos2,iD)=
-        let newSymPos= (List.find (fun sym -> sym.Id=iD) model.Wire.Symbol.SymbolsList).Pos
-        let posDiff= {X=newSymPos.X-pos1.X;Y=newSymPos.Y-pos1.Y}
+    //model helper functions
+    
+    //update the bounding boxes of the boxes in boxesToUpdate
+    //removes current certain bounding boxes, and appends updated bounding boxes
+    let updateBBox boxesToUpdate=
+        let updateIndiv (pos1,pos2,iD)=
+            let newSymPos= (List.find (fun sym -> sym.Id=iD) model.Wire.Symbol.SymbolsList).Pos
+            let posDiff= {X=newSymPos.X-pos1.X;Y=newSymPos.Y-pos1.Y}
+            ({X = newSymPos.X; Y = newSymPos.Y},{X=pos2.X+posDiff.X; Y=pos2.Y+posDiff.Y},iD)
         model.Boxes
-        |> List.except [(pos1,pos2,iD)]
-        |> List.append [({X = newSymPos.X; Y = newSymPos.Y},{X=pos2.X+posDiff.X; Y=pos2.Y+posDiff.Y},iD)]
+        |> List.filter (fun x -> (not (List.contains x boxesToUpdate)))
+        |> List.append (List.map updateIndiv boxesToUpdate)
 
+    //checks if components are in the start and end corners of the mutlti-select box
     let inSelBox (sc, ec) =     //sc : start corner, ec: end corner
         let corners = if sc.X < ec.X     //dragging left to right
                          then if sc.Y < ec.Y
                               then {TopCorner=sc;BottomCorner=ec}          //dragging up to down
-                                // (sc, ec)
                               else {TopCorner={X=sc.X;Y=ec.Y};BottomCorner={X=ec.X;Y=sc.Y}}    //dragging down to up
                          else if sc.Y > ec.Y    //dragging right to left
                               then {TopCorner=ec;BottomCorner=sc}  //dragging down to up
                               else {TopCorner={X=ec.X;Y=sc.Y};BottomCorner={X=sc.X;Y=ec.Y}}   //dragging up to down
-        
+
         let overlap (pos1,pos2,id) = if corners.TopCorner.X<pos1.X && corners.BottomCorner.X>pos1.X 
                                         ||corners.TopCorner.X<pos2.X && corners.BottomCorner.X>pos2.X
                                      then if corners.TopCorner.Y<pos1.Y && corners.BottomCorner.Y>pos1.Y
@@ -145,52 +161,87 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                                           else None
                                      else None
         List.choose (fun (pos1,pos2,id) -> overlap (pos1,pos2,id)) model.Boxes
-
+    
+    //checks to see if the mousepress position is in range of any of the ports on the component
+    let inRangeofPort mousepos sId = 
+        let symb : Symbol = List.find (fun sym -> sym.Id=sId) model.Wire.Symbol.SymbolsList
+        let dist (p1:Helpers.XYPos) (p2:XYPos) = sqrt((p1.X-p2.X)**2. + (p1.Y-p2.Y)**2.)
+        match List.tryFind (fun (prt:CommonTypes.Port) -> (dist prt.PortPos mousepos)<40. ) symb.InputPorts with
+        | Some x -> Some x
+        | None -> match List.tryFind (fun (prt:CommonTypes.Port) -> (dist prt.PortPos mousepos)<40. ) symb.OutputPorts with
+                  | Some x -> Some x
+                  | None -> None
+        
+    //message and model processing and updating
     match msg with
+    //input from the mouse:
     | Wire (BusWire.MouseMsg {Op = mouseState ; Pos = { X = mX; Y = mY}; Zoom = zoom}) ->
-        //is this mouse over a component - if so return the component Id
+
+        //return component Id if mouse is over a component
         let overComp = List.tryFind (fun (co1,co2,symId) -> co1.X<mX && co2.X>mX && co1.Y<mY && co2.Y>mY) model.Boxes
+
         //mouseposition - used when dragging to make the multi-select box
-        let mouseDownPos = {X=mX;Y=mY}
+        let mousePos = {X=mX;Y=mY}
         
         match mouseState with
+        //DOWN: checks if mousepressed over a component or not:
+        // 1 - over a component -> if no components are already selected the component or its port are selected
+                                  //if components are selected and this component is among them, nothing is done
+                                  // otherwise all already selected component are unselected and the new component is selected
+        // 2 - not over a component -> unselected any selected componnents and starts drawing a multi-select box
         | Down -> match overComp with
-                  | Some (pos1,pos2,iD) -> printfn "Selected: %A" iD
-                                           if List.isEmpty model.Selected
-                                           then {model with Selected=[iD];LastOp=Down}, Cmd.ofMsg (selColorMsg [iD])
-                                           else {model with Selected=[];LastOp=Down}, Cmd.ofMsg (unSelColorMsg model.Selected)  
-                                           //need to unselect and select new!
+                  | Some (pos1,pos2,iD) -> if List.isEmpty model.Selected
+                                           then match (inRangeofPort mousePos iD) with
+                                                | Some startport -> {model with LastOp=Down;SCursor=startport.PortPos;ECursor=startport.PortPos;WorMS=false;SelectedPort=[startport]}, Cmd.none 
+                                                | None -> {model with Selected=[iD];LastOp=Down}, Cmd.ofMsg (selColorMsg [iD])
+                                            else if List.contains iD model.Selected
+                                                 then {model with LastOp=Down}, Cmd.none
+                                                 else {model with Selected=[iD];LastOp=Down}, Cmd.ofMsg (unSelColorMsg model.Selected) 
                   | None -> if model.Selected <> []
                             then let iD = model.Selected.[0]
-                                 {model with Selected=[];LastOp=Down;StartMultiSelBox=mouseDownPos;EndMultiSelBox=mouseDownPos},Cmd.ofMsg (unSelColorMsg [iD])
-                            else {model with LastOp=Down;StartMultiSelBox=mouseDownPos;EndMultiSelBox=mouseDownPos}, Cmd.none
-        | Up -> printfn "Last Op: %A" model.LastOp
-                match model.LastOp with
+                                 {model with Selected=[];LastOp=Down;SCursor=mousePos;ECursor=mousePos;WorMS=true},Cmd.ofMsg (unSelColorMsg [iD])
+                            else {model with LastOp=Down;SCursor=mousePos;ECursor=mousePos;WorMS=true}, Cmd.none
+        //UP :if the last mouse operation was drag then the type of drag needs to be determined, there are three cases
+        // 1- drawing a selecting box in which case any components in the box need be selected (func- inSelBox)
+        // 2 - drawing a wire in which case the ports needs to be validated and sent to BusWire to make a new comp.
+        // 3 - moving selected components - in which case the bounded boxes for all moved components need to be updated
+        | Up -> match model.LastOp with
                 | Drag -> if List.isEmpty model.Selected
-                          then let multiselected= inSelBox (model.StartMultiSelBox,model.EndMultiSelBox)
-                               {model with Selected=multiselected;LastOp=Up;EndMultiSelBox={X=0.;Y=0.};StartMultiSelBox={X=0.;Y=0.}}, Cmd.ofMsg (selColorMsg multiselected) //implement multi-select by dragging
-                          else printfn "Updated BBox"
-                               let pos1,pos2,iD = List.find (fun (pos1,pos2,symid) -> symid=model.Selected.[0]) model.Boxes
-                               {model with Selected=[];Boxes=updateBBox(pos1,pos2,iD);LastOp=Up}, Cmd.ofMsg (unSelColorMsg [iD])
-                               //if the over comp is true then should be green rather than grey?
+                          then if model.WorMS
+                                    //multi-select box
+                               then let multiselected= inSelBox (model.SCursor,model.ECursor)
+                                    {model with Selected=multiselected;LastOp=Up;ECursor={X=0.;Y=0.};SCursor={X=0.;Y=0.}}, Cmd.ofMsg (selColorMsg multiselected)
+                               else match overComp with
+                                    //wire
+                                    | Some (p1,p2,iD) -> match (inRangeofPort mousePos iD) with
+                                                         | Some endport -> let ports = (model.SelectedPort.[0],endport)
+                                                                           {model with LastOp=Up;ECursor={X=0.;Y=0.};SCursor={X=0.;Y=0.};SelectedPort=[]}, Cmd.ofMsg (newWire ports)
+                                                         | None -> {model with LastOp=Drag}, Cmd.none
+                                    | None -> {model with LastOp=Up;ECursor={X=0.;Y=0.};SCursor={X=0.;Y=0.};SelectedPort=[]}, Cmd.none
+                          else let updateBBoxes = List.filter (fun (pos1,pos2,symid) -> (List.exists (fun x -> x=symid) model.Selected) ) model.Boxes
+                               {model with Selected=[];Boxes=(updateBBox updateBBoxes);LastOp=Up}, Cmd.ofMsg (unSelColorMsg model.Selected)
                 | _ -> {model with LastOp=Up}, Cmd.none
+        //DRAG: if no components are selected, either a multi-select box or a wire is being drawn in which case its current
+        //end point components need to be updated
         | Drag -> if List.isEmpty model.Selected
-                  then {model with LastOp=Drag;EndMultiSelBox=mouseDownPos}, Cmd.none
+                  then {model with LastOp=Drag;ECursor=mousePos}, Cmd.none
                   else {model with LastOp=Drag}, Cmd.none
+        //MOVE: if the cursor is over a components and no other components are selected then a hovering message is sent
+        // at the moment this simply updates the colour but will ultimately be up to symbol to decide what is changed
+        // to indicate hovering. Once no longer hovering over a component, the component will return to normal state
         | Move -> match overComp with
-                  | Some (pos1,pos2,iD) -> printfn "Hovering: %A" iD
-                                           if List.isEmpty model.Selected
+                  | Some (pos1,pos2,iD) -> if List.isEmpty model.Selected
                                            then {model with Hovering=[iD]}, Cmd.ofMsg (hovColorMsg [iD])
                                            else model, Cmd.none
                   | None -> if List.isEmpty model.Hovering
-                            then model, Cmd.none    //hovering empty
+                            then model, Cmd.none
                             else if List.isEmpty model.Selected 
-                                 then let iD = model.Hovering.[0]   //hovering not empty, selected empty
+                                 then let iD = model.Hovering.[0]
                                       {model with Hovering=[]},Cmd.ofMsg (unSelColorMsg [iD])   
-                                 else {model with Hovering=[]},Cmd.none //hovering not empty, selected not empty
+                                 else {model with Hovering=[]},Cmd.none
 
     // sending messages to buswire - only comm. path
-    // all other update functions that need to comm. with other paths
+    // all other update functions that need to comm. with other paths\
     // will send an update function to this DU
     | Wire wMsg -> 
         let wModel, wCmd = BusWire.update wMsg model.Wire
@@ -205,16 +256,15 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
     //     printfn "CmdD"
     //     {model with Multi=true}, Cmd.none
 
+    //new component
     | KeyPress AltN ->
-        printfn "New Component"
+        let compid = CommonTypes.ComponentId (Helpers.uuid())
         let symbolPos = {X=200.;Y=200.}
             //can be mouse co-ordinates or however the position of a new component will be implemented
-        let compid = CommonTypes.ComponentId (Helpers.uuid())
         let newCompInfo = (symbolPos,compid)
             //all the info needed for a new comp - updated when interfacing with Symbol
         let boundingBoxInfo = {X=symbolPos.X;Y=symbolPos.Y},{X=symbolPos.X+300.;Y=symbolPos.Y+500.},compid
             //creating a bounding box - either calc. or use component type dimensions?
-        printfn "%A" compid
         {model with Boxes=boundingBoxInfo::model.Boxes}, Cmd.ofMsg (Wire <| BusWire.Symbol (Symbol.AddSquare newCompInfo))
     
     | KeyPress AltUp ->
@@ -249,14 +299,13 @@ let init() =
     {
         Wire = model
         Zoom = 1.0
-        Multi = false
+        // Multi = false
         Boxes=[]
         Selected=[]
         Hovering=[]
         LastOp = Move
-        StartMultiSelBox={X=0.;Y=0.}
-        EndMultiSelBox={X=0.;Y=0.}
+        SCursor={X=0.;Y=0.}
+        ECursor={X=0.;Y=0.}
+        WorMS=true
+        SelectedPort=[]
     }, Cmd.map Wire cmds
-//need to remove all the initial boxes and do bounding boxes as components are added
-
-
