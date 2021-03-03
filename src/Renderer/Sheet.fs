@@ -42,15 +42,15 @@ type SelectingBox={
 ///helper functions to be moved out later
 
 //selection,hovering and unselection colors - these can be updated to interface with symbol or buswire
-let selColorMsg symId= (Wire <| BusWire.Symbol (Symbol.SymbolColor (symId,CommonTypes.Red)) )
-let hovColorMsg symId= (Wire <| BusWire.Symbol (Symbol.SymbolColor (symId,CommonTypes.Green)) )
-let unSelColorMsg symId = (Wire <| BusWire.Symbol (Symbol.SymbolColor (symId,CommonTypes.Grey)) )
-let newWire ports = (Wire <| BusWire.AddWire ports )
+let selColorMsg (symId: CommonTypes.ComponentId list) : Msg = (Wire <| BusWire.Symbol (Symbol.SymbolColor (symId,CommonTypes.Red)) )
+let hovColorMsg (symId: CommonTypes.ComponentId list) : Msg = (Wire <| BusWire.Symbol (Symbol.SymbolColor (symId,CommonTypes.Green)) )
+let unSelColorMsg (symId: CommonTypes.ComponentId list) : Msg  = (Wire <| BusWire.Symbol (Symbol.SymbolColor (symId,CommonTypes.Grey)) )
+let newWire (ports: CommonTypes.Port * CommonTypes.Port) : Msg = (Wire <| BusWire.AddWire ports )
 
 /// This function zooms an SVG canvas by transforming its content and altering its size.
 /// Currently the zoom expands based on top left corner. Better would be to collect dimensions
 /// current scroll position, and chnage scroll position to keep centre of screen a fixed point.
-let displaySvgWithZoom (zoom: float) (svgReact: ReactElement) mSW mSH sLine eLine worMS (dispatch: Dispatch<Msg>)=
+let displaySvgWithZoom (zoom: float) (svgReact: ReactElement) (mSW:XYPos) (mSH:XYPos) (sLine:XYPos) (eLine:XYPos) (worMS:bool) (dispatch: Dispatch<Msg>)=
     let sizeInPixels = sprintf "%.2fpx" ((1500. * zoom))
     /// Is the mouse button currently down?
     let mDown (ev:Types.MouseEvent) = 
@@ -134,7 +134,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
     
     //update the bounding boxes of the boxes in boxesToUpdate
     //removes current certain bounding boxes, and appends updated bounding boxes
-    let updateBBox boxesToUpdate=
+    let updateBBox (boxesToUpdate:(XYPos*XYPos*CommonTypes.ComponentId) list) : (XYPos*XYPos*CommonTypes.ComponentId) list =
         let updateIndiv (pos1,pos2,iD)=
             let newSymPos= (List.find (fun sym -> sym.Id=iD) model.Wire.Symbol.SymbolsList).Pos
             let posDiff= {X=newSymPos.X-pos1.X;Y=newSymPos.Y-pos1.Y}
@@ -144,7 +144,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         |> List.append (List.map updateIndiv boxesToUpdate)
 
     //checks if components are in the start and end corners of the mutlti-select box
-    let inSelBox (sc, ec) =     //sc : start corner, ec: end corner
+    let inSelBox ((sc:XYPos), (ec:XYPos)): (CommonTypes.ComponentId) list=     //sc : start corner, ec: end corner
         let corners = if sc.X < ec.X     //dragging left to right
                          then if sc.Y < ec.Y
                               then {TopCorner=sc;BottomCorner=ec}          //dragging up to down
@@ -160,10 +160,10 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                                           then Some id
                                           else None
                                      else None
-        List.choose (fun (pos1,pos2,id) -> overlap (pos1,pos2,id)) model.Boxes
+        List.choose overlap model.Boxes
     
     //checks to see if the mousepress position is in range of any of the ports on the component
-    let inRangeofPort mousepos sId = 
+    let inRangeofPort (mousepos:XYPos) (sId:CommonTypes.ComponentId) : Option<CommonTypes.Port> = 
         let symb : Symbol = List.find (fun sym -> sym.Id=sId) model.Wire.Symbol.SymbolsList
         let dist (p1:Helpers.XYPos) (p2:XYPos) = sqrt((p1.X-p2.X)**2. + (p1.Y-p2.Y)**2.)
         match List.tryFind (fun (prt:CommonTypes.Port) -> (dist prt.PortPos mousepos)<40. ) symb.InputPorts with
@@ -192,7 +192,9 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         | Down -> match overComp with
                   | Some (pos1,pos2,iD) -> if List.isEmpty model.Selected
                                            then match (inRangeofPort mousePos iD) with
-                                                | Some startport -> {model with LastOp=Down;SCursor=startport.PortPos;ECursor=startport.PortPos;WorMS=false;SelectedPort=[startport]}, Cmd.none 
+                                                | Some startport -> if List.isEmpty model.Hovering
+                                                                    then {model with LastOp=Down;SCursor=startport.PortPos;ECursor=startport.PortPos;WorMS=false;SelectedPort=[startport]}, Cmd.none
+                                                                    else {model with LastOp=Down;SCursor=startport.PortPos;ECursor=startport.PortPos;WorMS=false;SelectedPort=[startport];Hovering=[]}, Cmd.ofMsg (unSelColorMsg [iD])
                                                 | None -> {model with Selected=[iD];LastOp=Down}, Cmd.ofMsg (selColorMsg [iD])
                                             else if List.contains iD model.Selected
                                                  then {model with LastOp=Down}, Cmd.none
@@ -282,6 +284,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             List.filter (fun (pos1,pos2,bBoxId)-> match List.tryFind (fun delId-> delId=bBoxId) delCompList with
                                                   | Some x -> false
                                                   | None -> true) model.Boxes
+        
         {model with Selected=[];Boxes=remainingbBoxes},Cmd.ofMsg (Wire <| BusWire.Symbol (DeleteSymbol delCompList))
 
     // Wire Colour changes
@@ -293,6 +296,12 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             | _ -> CommonTypes.Grey
         printfn "Key:%A" c
         model, Cmd.ofMsg (Wire <| BusWire.SetColor c)
+
+//  FOR INTERFACING
+
+    //returns a list of wires to be deleted
+    // let delWires (symbList:Symbol.Symbol list) : BusWire.Wire list = 
+    //     List.filter (fun wire -> (List.contains wire.SrcSymbol symbList) || (List.contains wire.TargetSymbol symbList)) model.Wire.WX
 
 let init() = 
     let model,cmds = (BusWire.init 0)()
@@ -309,3 +318,6 @@ let init() =
         WorMS=true
         SelectedPort=[]
     }, Cmd.map Wire cmds
+
+
+
