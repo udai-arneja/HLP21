@@ -31,9 +31,33 @@ Bounding boxes need to be updated when components are moved. For performance ben
 When dragging occurs from a blank space, a multi-select box is drawn.
 
 
-#### Creating
+#### Functionality
 
-When dragging occurs from a blank space, a multi-select box is drawn.
+After the multi-select box has been drawn, all the components inside it are selected.
+
+### Symbol and Box Manipulation
+
+#### Deleting Symbol
+
+Selected symbols can be deleted using Alt+P for now, this can be changed at a later stage. Multiple symbols can be deleted at once.
+
+#### Hovering
+
+When hovering over a component it will turn green to indicate it can be selected.
+
+#### Selecting
+
+Components can either be selected by pressing on them, or by using the multi-select box.
+
+#### New Symbol
+
+At new symbol can be added by `ALt+N` for now, this can be changed at a later stage.
+
+### Wires
+
+#### New Wires
+
+By dragging from a port to another port a wire can be created. This sends a new wire message to **BusWire** with the two port Ids.
 
 
 <!---
