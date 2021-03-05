@@ -3,7 +3,7 @@
 
 See [The SVG Demo README](https://github.com/tomcl/hlp21-svg-elmish-demo/blob/master/README.md) for 
 code structure and how to build the dev environment: this is the same as the WS 3 SVG demo.
----!>
+
 You should already have looked at the SVG Demo code and have some understanding of how an Elmish application works, using
 a `model`, `view`, and `update` function with messages used to update the model. The project skeleton code 
 illustrates a more complex example of Elmish code, 
@@ -46,7 +46,7 @@ In the demo code the three modules each have views that create objects on the SV
 connection end-points. Possibly dynamic guides showing component algnment.
 
 These have a parent child relationship:
-
+---!><!---
 `Sheet --> BusWire --> Symbol`
 
 So the `BusWire` module can have a view function that depends on the `Symbol` module state (`Symbol.model`). The `Symbol` view 
@@ -76,7 +76,7 @@ For project work the SVG elements certainly needed are:
 * `text` for text - see [w3schools](https://www.w3schools.com/graphics/svg_text.asp) etc
 * `g` which groups elemnets (like `div` for normal HTML), see skeleton.
 * `svg` which creates an SVG canvas of specified size, see skeleton.
-
+---!>
 Note also that the order in which elements are put onto a canvas matters. the *last* element will be on top. In the skeleton
 * the blue overlay translucent triangle is on top, because it is last in its `g` list of elements.
 * That means that it alters the color of the elements underneath (opacity 0.1). Also mouse clicks are collected by that element
