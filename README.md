@@ -3,7 +3,7 @@
 
 See [The SVG Demo README](https://github.com/tomcl/hlp21-svg-elmish-demo/blob/master/README.md) for 
 code structure and how to build the dev environment: this is the same as the WS 3 SVG demo.
-
+---!>
 You should already have looked at the SVG Demo code and have some understanding of how an Elmish application works, using
 a `model`, `view`, and `update` function with messages used to update the model. The project skeleton code 
 illustrates a more complex example of Elmish code, 
