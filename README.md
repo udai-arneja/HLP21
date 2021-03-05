@@ -59,6 +59,38 @@ At new symbol can be added by `ALt+N` for now, this can be changed at a later st
 
 By dragging from a port to another port a wire can be created. This sends a new wire message to **BusWire** with the two port Ids.
 
+#### Delete Wires - waiting for interface
+
+This function will be able to select wires based on their bounding boxes, created by **BusWire**, from this the wireId(s) are sent to **BusWire** to be deleted. This will be used when deleting symbols, checking if they have any wires associated with them etc.
+
+## Functions
+
+### Select/Unselect/Hover
+
+Currently these simply change the colour in symbol, however, as they are abstracted they can be readily changed to just the Symbol Id for **Symbol** to do various animations.
+
+### Updating bounding boxes
+
+`updateBBox (boxesToUpdate:(XYPos*XYPos*CommonTypes.ComponentId) list) : (XYPos*XYPos*CommonTypes.ComponentId) list `
+
+This function is abstracted out and can therefore be easily moved to **Symbol** as needed.
+
+### In the Multi-Select Box
+
+`inSelBox ((sc:XYPos), (ec:XYPos)): (CommonTypes.ComponentId) list `
+
+This checks whether the co-ordinates of bounding boxes are inside the start and end corners of the multi-select box.
+Further applications of this include prevention of the overlapping components in snap-to-align functions, although this is yet to be implemented in the group stage.
+
+### In the Range of a Port
+
+`inRangeofPort (mousepos:XYPos) (sId:CommonTypes.ComponentId) : Option<CommonTypes.Port>`
+
+Checks if the mouse position is over a port when hovering over a component.
+
+
+
+
 
 <!---
 # SVG Draw Application Project Skeleton Code For HLP Project 2021
