@@ -76,7 +76,7 @@ For project work the SVG elements certainly needed are:
 * `text` for text - see [w3schools](https://www.w3schools.com/graphics/svg_text.asp) etc
 * `g` which groups elemnets (like `div` for normal HTML), see skeleton.
 * `svg` which creates an SVG canvas of specified size, see skeleton.
--->
+
 Note also that the order in which elements are put onto a canvas matters. the *last* element will be on top. In the skeleton
 * the blue overlay translucent triangle is on top, because it is last in its `g` list of elements.
 * That means that it alters the color of the elements underneath (opacity 0.1). Also mouse clicks are collected by that element
