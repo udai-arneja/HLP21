@@ -1,3 +1,41 @@
+## Introduction
+
+This is the documentation for the individual section of the HLP project 2021, with a focus on the sheet implementation.
+
+## Sheet Module Features 
+
+### Bounding Boxes
+
+The bounding boxes are currently implemented in the **Sheet** model, but for the group project it would make more sense to be implemented in **Symbol** alongside the symbol rendering.
+
+#### Type
+
+A bounding box is a three tuple, made up of two co-ordinates to define the rectangle and the symbol Id, therefore has type
+
+`BoundingBox: XYPos * XYPos * SymbolId`
+
+And all the bounding boxes are represented in a list.
+
+#### Creating
+
+The bounding boxes are made when a new symbol is created. For demo purposes, the XYPos is hardcoded - when interfaced with **Symbol** this will be from the Width and Height of the new component.
+
+#### Updating
+
+Bounding boxes need to be updated when components are moved. For performance benefits, this happens after a component is moved - rather than while it is being dragged.
+
+### Multi-Select Boxes
+
+#### Creating
+
+When dragging occurs from a blank space, a multi-select box is drawn.
+
+
+#### Creating
+
+When dragging occurs from a blank space, a multi-select box is drawn.
+
+
 <!---
 # SVG Draw Application Project Skeleton Code For HLP Project 2021
 
