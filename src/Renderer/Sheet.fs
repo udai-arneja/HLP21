@@ -82,6 +82,19 @@ let displaySvgWithZoom (zoom: float) (svgReact: ReactElement) (mSW:XYPos) (mSH:X
             [ g // group list of elements with list of attributes
                 [ Style [Transform (sprintf "scale(%f)" zoom)]] // top-level transform style attribute for zoom
                 [ 
+                    if worMS
+                        then
+                            polygon [
+                                SVGAttr.Points dimensions
+                                SVGAttr.StrokeWidth "1px"
+                                SVGAttr.Stroke "Black"
+                                SVGAttr.FillOpacity 0.1
+                                SVGAttr.Fill "Blue"
+                                ] []
+                        else
+                            line [
+                                X1 sLine.X; Y1 sLine.Y; X2 eLine.X; Y2 eLine.Y; Style [Stroke "Black";StrokeWidth "3px"]
+                            ] []
                     text [ // a demo text svg element
                         X 750; 
                         Y 75; 
@@ -97,19 +110,7 @@ let displaySvgWithZoom (zoom: float) (svgReact: ReactElement) (mSW:XYPos) (mSH:X
                     svgReact // the application code
 
                     //if wire between ports draw a line, otherwise draw a multi-selecting box
-                    if worMS
-                    then
-                        polygon [
-                            SVGAttr.Points dimensions
-                            SVGAttr.StrokeWidth "1px"
-                            SVGAttr.Stroke "Black"
-                            SVGAttr.FillOpacity 0.1
-                            SVGAttr.Fill "Blue"
-                            ] []
-                    else
-                        line [
-                            X1 sLine.X; Y1 sLine.Y; X2 eLine.X; Y2 eLine.Y; Style [Stroke "Black";StrokeWidth "3px"]
-                        ] []
+                    
                 ]
             ]
         ]

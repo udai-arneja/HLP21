@@ -48,6 +48,7 @@
     "font-awesome": "^4.7.0",
     "jquery": "^3.5.1",
     "jquery-ui": "^1.12.1",
+    "paket": "^0.1.4",
     "react": "^16.9.0",
     "react-dom": "^16.9.0",
     "rechart": "^0.0.1",
